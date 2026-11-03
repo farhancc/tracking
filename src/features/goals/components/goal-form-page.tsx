@@ -1,6 +1,15 @@
 import { notFound } from "next/navigation";
 import { maxDate } from "@/lib/domain/dates";
-import { GOAL_CATEGORIES, GOAL_LEVELS, suggestPeriod, type GoalCategory, type GoalLevel } from "@/lib/domain/goals";
+import { isIsoDate } from "@/lib/domain/dates";
+import {
+  GOAL_CATEGORIES,
+  GOAL_LEVELS,
+  MEASUREMENT_MODES,
+  suggestPeriod,
+  type GoalCategory,
+  type GoalLevel,
+  type MeasurementMode,
+} from "@/lib/domain/goals";
 import { createGoalAction, updateGoalAction } from "../server/actions";
 import { loadGoalFormData } from "../server/queries";
 import { GoalForm, type GoalFormValues } from "./goal-form";
@@ -35,7 +44,16 @@ export async function NewGoalPage({ searchParams }: { searchParams: Promise<Sear
     ? { startDate: parent.startDate, targetDate: parent.targetDate }
     : { startDate: workspace.journey.startDate, targetDate: workspace.journey.endDate };
   const anchor = level === "five_year" ? workspace.journey.startDate : maxDate(workspace.today, bounds.startDate);
-  const period = suggestPeriod(level, anchor, bounds, workspace.weekStartsOn);
+  const suggested = suggestPeriod(level, anchor, bounds, workspace.weekStartsOn);
+  // The roadmap links here with explicit dates (e.g. a quarter's start and end).
+  const start = one(params.start);
+  const end = one(params.end);
+  const period =
+    start && end && isIsoDate(start) && isIsoDate(end) && start <= end ? { startDate: start, targetDate: end } : suggested;
+  const requestedMode = one(params.mode);
+  const mode: MeasurementMode =
+    requestedMode && (MEASUREMENT_MODES as readonly string[]).includes(requestedMode) ? (requestedMode as MeasurementMode) : "latest";
+  const isKeyResult = one(params.kr) === "1" && Boolean(parent);
   const defaultPillar =
     parent?.pillarId ??
     workspace.pillars.find((p) => p.key === (category === "financial" ? "wealth" : category === "personal_brand" ? "brand" : category === "business_ownership" ? "product" : "sales"))?.id ??
@@ -49,16 +67,18 @@ export async function NewGoalPage({ searchParams }: { searchParams: Promise<Sear
     level,
     category,
     parentId: parent?.id ?? "",
+    isKeyResult,
     startDate: period.startDate,
     targetDate: period.targetDate,
     priority: 3,
     status: "not_started",
-    successMetric: "",
-    unit: category === "financial" ? "currency" : category === "exit_condition" ? "boolean" : "number",
+    successMetric: mode === "key_results" ? "Key results achieved" : "",
+    unit: mode === "key_results" ? "percent" : category === "financial" ? "currency" : category === "exit_condition" ? "boolean" : "number",
     currency: workspace.baseCurrency,
-    measurementMode: "latest",
+    measurementMode: isKeyResult && mode === "key_results" ? "latest" : mode,
     baselineValue: "0",
-    targetValue: category === "exit_condition" ? "1" : "",
+    targetValue: mode === "key_results" ? "100" : category === "exit_condition" ? "1" : "",
+    estimatedHours: "",
     notes: "",
   };
 
@@ -94,6 +114,7 @@ export async function EditGoalPage({ params }: { params: Promise<{ id: string }>
     level: goal.level as GoalLevel,
     category: goal.category ?? "",
     parentId: goal.parentId ?? "",
+    isKeyResult: goal.isKeyResult,
     startDate: goal.startDate,
     targetDate: goal.targetDate,
     priority: goal.priority,
@@ -104,6 +125,7 @@ export async function EditGoalPage({ params }: { params: Promise<{ id: string }>
     measurementMode: goal.measurementMode,
     baselineValue: String(goal.baselineValue),
     targetValue: String(goal.targetValue),
+    estimatedHours: goal.estimatedHours === null ? "" : String(goal.estimatedHours),
     notes: goal.notes ?? "",
   };
 

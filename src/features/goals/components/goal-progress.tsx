@@ -20,10 +20,14 @@ export function GoalProgress({ goal, compact = false }: { goal: GoalView; compac
           <span className="font-medium text-foreground">{goal.completionPct}%</span>
           {compact ? null : <> · {goal.successMetric}</>}
         </span>
-        <span>
-          {fmt(goal.currentValue)} <span aria-hidden>→</span> {fmt(goal.targetValue)}
-          {compact ? null : <> (from {fmt(goal.baselineValue)})</>}
-        </span>
+        {goal.measurementMode === "key_results" ? (
+          <span>measured by key results</span>
+        ) : (
+          <span>
+            {fmt(goal.currentValue)} <span aria-hidden>→</span> {fmt(goal.targetValue)}
+            {compact ? null : <> (from {fmt(goal.baselineValue)})</>}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ import {
 } from "@/db/schema";
 import { addDays, addYears, todayIn, type IsoDate } from "@/lib/domain/dates";
 import {
+  KEY_RESULTS_SCALE,
   buildTree,
   canMarkAchieved,
   expectedPercent,
@@ -63,6 +64,7 @@ export type GoalSummary = Pick<
   GoalRow,
   | "id"
   | "parentId"
+  | "isKeyResult"
   | "title"
   | "level"
   | "category"
@@ -109,6 +111,7 @@ export const DEFAULT_PILLARS = [
 const summaryColumns = {
   id: goals.id,
   parentId: goals.parentId,
+  isKeyResult: goals.isKeyResult,
   title: goals.title,
   level: goals.level,
   category: goals.category,
@@ -384,8 +387,9 @@ export async function getGoalDetail(tx: Tx, id: string) {
     goal: decorateGoal(goal, ws.today),
     pillar: ws.pillars.find((p) => p.id === goal.pillarId) ?? null,
     ancestors: ancestors.rows,
-    children: children.map((c) => decorateGoal(c, ws.today)),
-    childSummary: summarizeChildren(children),
+    children: children.filter((c) => !c.isKeyResult).map((c) => decorateGoal(c, ws.today)),
+    keyResults: children.filter((c) => c.isKeyResult).map((c) => decorateGoal(c, ws.today)),
+    childSummary: summarizeChildren(children.filter((c) => !c.isKeyResult)),
     prerequisites,
     dependents,
     links: [...linksOut, ...linksIn].sort((a, b) => a.goal.title.localeCompare(b.goal.title)),
@@ -402,6 +406,14 @@ export type GoalDetail = Awaited<ReturnType<typeof getGoalDetail>>;
 // Goals: commands
 // ---------------------------------------------------------------------------
 
+/** Objectives measured from key results always run 0 → 100 percent. */
+function normalizeScale<T extends { measurementMode?: string; unit?: string; baselineValue?: number; targetValue?: number; currency?: string | null }>(
+  values: T,
+): T {
+  if (values.measurementMode !== "key_results") return values;
+  return { ...values, ...KEY_RESULTS_SCALE, currency: null };
+}
+
 export async function createGoal(tx: Tx, input: GoalCreateInput): Promise<GoalView> {
   const ws = await requireWorkspace(tx);
   let journeyId = ws.journey.id;
@@ -414,25 +426,30 @@ export async function createGoal(tx: Tx, input: GoalCreateInput): Promise<GoalVi
   }
   const [row] = await tx
     .insert(goals)
-    .values({
-      ...input,
-      category,
-      journeyId,
-      currency: input.unit === "currency" ? input.currency : null,
-    })
+    .values(
+      normalizeScale({
+        ...input,
+        category,
+        journeyId,
+        currency: input.unit === "currency" ? input.currency : null,
+      }),
+    )
     .returning();
   return decorateGoal(row, ws.today);
 }
 
 export async function updateGoal(tx: Tx, id: string, patch: GoalUpdateInput): Promise<GoalView> {
   const current = await findGoal(tx, id);
-  const set: Partial<typeof goals.$inferInsert> = { ...patch };
+  let set: Partial<typeof goals.$inferInsert> = { ...patch };
   if (patch.parentId !== undefined && patch.parentId !== current.parentId && patch.parentId) {
     const parent = await findGoal(tx, patch.parentId);
     if (parent.archivedAt) throw new AppError(422, "parent_archived", "The parent goal is archived.");
     set.journeyId = parent.journeyId;
   }
-  const unit = patch.unit ?? current.unit;
+  if ((patch.measurementMode ?? current.measurementMode) === "key_results") {
+    set = normalizeScale({ ...set, measurementMode: "key_results" });
+  }
+  const unit = set.unit ?? current.unit;
   if (unit !== "currency") set.currency = null;
   else if (patch.currency === undefined && current.currency) set.currency = current.currency;
 

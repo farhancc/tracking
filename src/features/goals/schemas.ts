@@ -31,6 +31,7 @@ const goalFields = {
   level: z.enum(GOAL_LEVELS),
   category: z.enum(GOAL_CATEGORIES).nullish().transform((v) => v ?? null),
   parentId: z.uuid().nullish().transform((v) => v ?? null),
+  isKeyResult: z.boolean(),
   startDate: isoDate,
   targetDate: isoDate,
   priority: z.number().int().min(1).max(4),
@@ -42,11 +43,13 @@ const goalFields = {
   baselineValue: finite,
   targetValue: finite,
   notes: optionalText(20000),
+  estimatedHours: z.number().min(0).max(10000).nullish().transform((v) => v ?? null),
   sortOrder: z.number().int(),
 };
 
 type GoalShape = {
   level?: (typeof GOAL_LEVELS)[number];
+  isKeyResult?: boolean;
   category?: string | null;
   parentId?: string | null;
   startDate?: string;
@@ -61,6 +64,10 @@ type GoalShape = {
 function refineGoal(goal: GoalShape, ctx: z.RefinementCtx) {
   if (goal.startDate && goal.targetDate && goal.targetDate < goal.startDate) {
     ctx.addIssue({ code: "custom", path: ["targetDate"], message: "The target date must be on or after the start date." });
+  }
+  if (goal.isKeyResult) {
+    if (goal.parentId === null) ctx.addIssue({ code: "custom", path: ["parentId"], message: "A key result needs the objective it measures as its parent." });
+    if (goal.measurementMode === "key_results") ctx.addIssue({ code: "custom", path: ["measurementMode"], message: "A key result is measured directly, not by other key results." });
   }
   if (goal.level === "five_year") {
     if (goal.parentId) ctx.addIssue({ code: "custom", path: ["parentId"], message: "Five-year goals sit at the top and have no parent." });
@@ -80,7 +87,13 @@ function refineGoal(goal: GoalShape, ctx: z.RefinementCtx) {
       ctx.addIssue({ code: "custom", path: ["measurementMode"], message: "Yes/no goals use the latest value." });
     }
   }
-  if (goal.baselineValue !== undefined && goal.targetValue !== undefined && goal.baselineValue === goal.targetValue && goal.unit !== "boolean") {
+  if (
+    goal.measurementMode !== "key_results" &&
+    goal.baselineValue !== undefined &&
+    goal.targetValue !== undefined &&
+    goal.baselineValue === goal.targetValue &&
+    goal.unit !== "boolean"
+  ) {
     ctx.addIssue({ code: "custom", path: ["targetValue"], message: "The target must differ from the baseline, otherwise there is nothing to achieve." });
   }
 }
@@ -89,6 +102,7 @@ export const goalCreateSchema = z
   .object({
     ...goalFields,
     priority: goalFields.priority.default(3),
+    isKeyResult: goalFields.isKeyResult.default(false),
     status: goalFields.status.default("not_started"),
     unit: goalFields.unit.default("number"),
     measurementMode: goalFields.measurementMode.default("latest"),

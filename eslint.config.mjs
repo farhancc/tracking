@@ -26,7 +26,7 @@ const eslintConfig = defineConfig([
   },
   {
     // Server-side modules that are allowed to open transactions.
-    files: ["src/db/**", "src/lib/api/**", "src/features/*/server/**"],
+    files: ["src/db/**", "src/lib/api/**", "src/lib/server-action.ts", "src/features/*/server/**"],
     rules: {
       "no-restricted-imports": [
         "error",

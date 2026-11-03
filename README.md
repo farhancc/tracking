@@ -4,7 +4,7 @@ A personal operating system for a five-year journey toward becoming a successful
 
 FiveYearOS tracks four strategic pillars — **Sales Mastery**, **Product Entrepreneurship**, **Personal Branding** and **Financial Independence** — from a five-year vision down to today's calls, habits and journal entry, and turns that data into weekly, monthly, quarterly and annual reviews.
 
-> **Status:** the five-year strategic goal engine is implemented: schema, REST API, UI and tests ([docs/08](docs/08-goal-engine.md)). Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
+> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) and the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) are implemented, with schema, REST API, UI and tests. Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
 
 ## Planned stack
 
@@ -23,6 +23,7 @@ Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui · Neon serverless
 | 6 | [Security](docs/06-security.md) | Threat model, auth, RLS, headers, backups, privacy |
 | 7 | [Development milestones](docs/07-development-milestones.md) | Phased roadmap with exit criteria |
 | 8 | [Goal engine](docs/08-goal-engine.md) | Five-year → daily hierarchy, outcome rules, REST API, interfaces, tests |
+| 9 | [Roadmap](docs/09-roadmap.md) | 5 annual plans, 20 quarters, OKRs, deliverables, KPIs, risks, realism checks |
 | ADR | [ADR-001: JWT auth and Neon Postgres](docs/adr/ADR-001-jwt-auth-and-neon.md) | Why the data and auth platform is Neon + self-issued JWTs instead of Supabase |
 
 ## Run it locally

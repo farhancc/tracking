@@ -118,12 +118,16 @@ export const MEASURE_UNIT_LABELS: Record<MeasureUnit, string> = {
   boolean: "Yes / no",
 };
 
-export const MEASUREMENT_MODES = ["latest", "cumulative"] as const;
+export const MEASUREMENT_MODES = ["latest", "cumulative", "key_results"] as const;
 export type MeasurementMode = (typeof MEASUREMENT_MODES)[number];
 export const MEASUREMENT_MODE_LABELS: Record<MeasurementMode, string> = {
   latest: "Latest value (a level, e.g. net worth, followers)",
   cumulative: "Running total (logged amounts add up, e.g. revenue, calls)",
+  key_results: "From key results (average outcome progress of its key results)",
 };
+
+/** Objectives measured by their key results always run 0 → 100 percent. */
+export const KEY_RESULTS_SCALE = { unit: "percent", baselineValue: 0, targetValue: 100 } as const;
 
 export const MEASUREMENT_SOURCES = ["manual", "import", "metric", "system"] as const;
 export type MeasurementSource = (typeof MEASUREMENT_SOURCES)[number];
@@ -148,9 +152,12 @@ export function levelRank(level: GoalLevel): number {
   return GOAL_LEVELS.indexOf(level) + 1;
 }
 
-/** A child must sit strictly deeper than its parent (levels may be skipped). */
-export function isValidParentLevel(parent: GoalLevel, child: GoalLevel): boolean {
-  return levelRank(parent) < levelRank(child);
+/**
+ * A child must sit strictly deeper than its parent (levels may be skipped).
+ * A key result may sit at the same level as the objective it measures.
+ */
+export function isValidParentLevel(parent: GoalLevel, child: GoalLevel, childIsKeyResult = false): boolean {
+  return childIsKeyResult ? levelRank(parent) <= levelRank(child) : levelRank(parent) < levelRank(child);
 }
 
 export function childLevelsFor(level: GoalLevel): GoalLevel[] {

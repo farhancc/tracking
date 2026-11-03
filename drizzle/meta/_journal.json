@@ -22,6 +22,20 @@
       "when": 1793690898100,
       "tag": "0002_goal_engine_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793695939398,
+      "tag": "0003_roadmap",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793695980759,
+      "tag": "0004_roadmap_rules",
+      "breakpoints": true
     }
   ]
 }

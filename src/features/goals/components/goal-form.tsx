@@ -31,6 +31,7 @@ import type { ActionState } from "../server/actions";
 export type GoalOption = {
   id: string;
   parentId: string | null;
+  isKeyResult?: boolean;
   title: string;
   level: GoalLevel;
   category: string | null;
@@ -46,6 +47,7 @@ export type GoalFormValues = {
   level: GoalLevel;
   category: string;
   parentId: string;
+  isKeyResult: boolean;
   startDate: string;
   targetDate: string;
   priority: number;
@@ -56,6 +58,7 @@ export type GoalFormValues = {
   measurementMode: string;
   baselineValue: string;
   targetValue: string;
+  estimatedHours: string;
   notes: string;
 };
 
@@ -107,6 +110,8 @@ export function GoalForm({
   const [parentId, setParentId] = useState(initial.parentId);
   const [pillarId, setPillarId] = useState(initial.pillarId);
   const [unit, setUnit] = useState(initial.unit);
+  const [measureMode, setMeasureMode] = useState(initial.measurementMode);
+  const [isKeyResult, setIsKeyResult] = useState(initial.isKeyResult);
   const [startDate, setStartDate] = useState(initial.startDate);
   const [targetDate, setTargetDate] = useState(initial.targetDate);
   const [datesTouched, setDatesTouched] = useState(mode === "edit");
@@ -114,9 +119,10 @@ export function GoalForm({
 
   const excluded = useMemo(() => (goalId ? descendantsOf(goalId, options) : new Set<string>()), [goalId, options]);
   const parentChoices = useMemo(
-    () => options.filter((o) => !excluded.has(o.id) && isValidParentLevel(o.level, level)),
-    [options, excluded, level],
+    () => options.filter((o) => !excluded.has(o.id) && !(isKeyResult && o.isKeyResult) && isValidParentLevel(o.level, level, isKeyResult)),
+    [options, excluded, level, isKeyResult],
   );
+  const measuredByKeyResults = measureMode === "key_results" && !isKeyResult;
   const parent = options.find((o) => o.id === parentId);
 
   function resuggest(nextLevel: GoalLevel, nextParentId: string) {
@@ -135,7 +141,7 @@ export function GoalForm({
     setLevel(next);
     let nextParent = parentId;
     const current = options.find((o) => o.id === parentId);
-    if (next === "five_year" || (current && !isValidParentLevel(current.level, next))) nextParent = "";
+    if (next === "five_year" || (current && !isValidParentLevel(current.level, next, isKeyResult))) nextParent = "";
     setParentId(nextParent);
     resuggest(next, nextParent);
   }
@@ -159,6 +165,8 @@ export function GoalForm({
       setParentId(initial.parentId);
       setPillarId(initial.pillarId);
       setUnit(initial.unit);
+      setMeasureMode(initial.measurementMode);
+      setIsKeyResult(initial.isKeyResult);
       setStartDate(initial.startDate);
       setTargetDate(initial.targetDate);
       setDatesTouched(false);
@@ -210,6 +218,24 @@ export function GoalForm({
                 ))}
               </Select>
             </Field>
+          )}
+          {isFiveYear ? null : (
+            <label className="flex items-start gap-2 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                name="isKeyResult"
+                checked={isKeyResult}
+                onChange={(e) => {
+                  setIsKeyResult(e.target.checked);
+                  if (e.target.checked && measureMode === "key_results") setMeasureMode("latest");
+                }}
+                className="mt-0.5 size-4"
+              />
+              <span>
+                This is a <strong>key result</strong> of the parent objective. A key result is a measurable outcome that proves
+                the objective. It may sit at the same level as its objective.
+              </span>
+            </label>
           )}
           <Field
             label={isFiveYear ? "Vision category" : "Vision category (optional)"}
@@ -277,6 +303,33 @@ export function GoalForm({
           >
             <Input id="successMetric" name="successMetric" defaultValue={initial.successMetric} required maxLength={200} />
           </Field>
+          <Field label="How progress is measured" htmlFor="measurementMode" errors={errors.measurementMode} className="sm:col-span-2">
+            <Select
+              id="measurementMode"
+              name="measurementMode"
+              value={unit === "boolean" && measureMode === "cumulative" ? "latest" : measureMode}
+              onChange={(e) => setMeasureMode(e.target.value)}
+            >
+              {MEASUREMENT_MODES.filter((m) => (unit !== "boolean" || m !== "cumulative") && !(isKeyResult && m === "key_results")).map((m) => (
+                <option key={m} value={m}>
+                  {MEASUREMENT_MODE_LABELS[m]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {measuredByKeyResults ? (
+            <>
+              <input type="hidden" name="unit" value="percent" />
+              <input type="hidden" name="currency" value="" />
+              <input type="hidden" name="baselineValue" value="0" />
+              <input type="hidden" name="targetValue" value="100" />
+              <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground sm:col-span-2">
+                Progress will be the average outcome progress of this objective&apos;s key results (0–100%). Add key results
+                from the goal page after saving.
+              </p>
+            </>
+          ) : (
+            <>
           <Field label="Unit" htmlFor="unit" errors={errors.unit}>
             <Select id="unit" name="unit" value={unit} onChange={(e) => setUnit(e.target.value)}>
               {MEASURE_UNITS.map((u) => (
@@ -293,15 +346,6 @@ export function GoalForm({
           ) : (
             <input type="hidden" name="currency" value="" />
           )}
-          <Field label="How measurements combine" htmlFor="measurementMode" errors={errors.measurementMode} className="sm:col-span-2">
-            <Select id="measurementMode" name="measurementMode" defaultValue={unit === "boolean" ? "latest" : initial.measurementMode}>
-              {MEASUREMENT_MODES.filter((m) => unit !== "boolean" || m === "latest").map((m) => (
-                <option key={m} value={m}>
-                  {MEASUREMENT_MODE_LABELS[m]}
-                </option>
-              ))}
-            </Select>
-          </Field>
           <Field
             label="Baseline (starting value)"
             htmlFor="baselineValue"
@@ -313,6 +357,8 @@ export function GoalForm({
           <Field label="Target value" htmlFor="targetValue" errors={errors.targetValue}>
             <Input id="targetValue" name="targetValue" type="number" step="any" defaultValue={initial.targetValue} required />
           </Field>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -374,6 +420,14 @@ export function GoalForm({
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field
+            label="Estimated effort (hours, optional)"
+            htmlFor="estimatedHours"
+            hint="Used by the roadmap to check plans against your available time."
+            errors={errors.estimatedHours}
+          >
+            <Input id="estimatedHours" name="estimatedHours" type="number" min={0} step="0.5" defaultValue={initial.estimatedHours} />
           </Field>
           <Field label="Notes" htmlFor="notes" errors={errors.notes} className="sm:col-span-2">
             <Textarea id="notes" name="notes" defaultValue={initial.notes} rows={4} />

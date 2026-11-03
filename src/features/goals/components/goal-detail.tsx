@@ -36,6 +36,7 @@ import {
 import type { GoalDetail, GoalSummary } from "../server/service";
 import { HealthBadge, PillarTag, PriorityBadge, StatusBadge } from "./badges";
 import { GoalProgress } from "./goal-progress";
+import { KeyResultsPanel } from "./key-results-panel";
 import { MeasurementChart } from "./measurement-chart";
 
 type Props = GoalDetail & { options: GoalSummary[] };
@@ -65,13 +66,14 @@ function chartPoints(goal: Props["goal"], measurements: Props["measurements"]) {
 }
 
 export function GoalDetailView(props: Props) {
-  const { goal, pillar, ancestors, children, childSummary, prerequisites, dependents, links, measurements, tasks, taskSummary, achievement, blockers, workspace, options } = props;
+  const { goal, pillar, ancestors, children, keyResults, childSummary, prerequisites, dependents, links, measurements, tasks, taskSummary, achievement, blockers, workspace, options } = props;
   const unit = goal.unit as MeasureUnit;
   const fmt = (v: number) => formatMeasure(v, unit, goal.currency);
   const nextLevel = defaultChildLevel(goal.level as GoalLevel);
   const daysLeft = diffDays(workspace.today, goal.targetDate);
 
   const points = chartPoints(goal, measurements);
+  const byKeyResults = goal.measurementMode === "key_results";
 
   const linkedIds = new Set([goal.id, ...prerequisites.map((p) => p.goal.id)]);
   const dependencyChoices = options.filter((o) => !linkedIds.has(o.id));
@@ -96,7 +98,7 @@ export function GoalDetailView(props: Props) {
 
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {GOAL_LEVEL_LABELS[goal.level as GoalLevel]}
+          {goal.isKeyResult ? "Key result" : GOAL_LEVEL_LABELS[goal.level as GoalLevel]}
           {goal.category ? <span>· {GOAL_CATEGORY_LABELS[goal.category as GoalCategory]}</span> : null}
           <PillarTag pillar={pillar} />
         </div>
@@ -133,7 +135,9 @@ export function GoalDetailView(props: Props) {
             <CardHeader>
               <CardTitle>Outcome: {goal.successMetric}</CardTitle>
               <CardDescription>
-                Progress comes only from measured outcomes.{" "}
+                {byKeyResults
+                  ? "Progress is the average outcome progress of this objective's key results."
+                  : "Progress comes only from measured outcomes."}{" "}
                 {goal.currentValueAsOf ? `Last measured ${goal.currentValueAsOf}.` : "No measurements yet."}
               </CardDescription>
             </CardHeader>
@@ -160,8 +164,12 @@ export function GoalDetailView(props: Props) {
                   The target has been reached. Mark the goal achieved below when you&apos;re satisfied it holds.
                 </p>
               ) : null}
+              {byKeyResults ? (
+                <KeyResultsPanel objective={goal} keyResults={keyResults} baseCurrency={workspace.baseCurrency} />
+              ) : null}
               <MeasurementChart points={points} target={goal.targetValue} label={goal.successMetric} />
 
+              {byKeyResults ? null : (
               <ActionForm
                 action={addMeasurementAction.bind(null, goal.id)}
                 submitLabel="Log measurement"
@@ -184,6 +192,7 @@ export function GoalDetailView(props: Props) {
                   </Field>
                 </div>
               </ActionForm>
+              )}
 
               {measurements.length > 0 ? (
                 <div className="overflow-x-auto">

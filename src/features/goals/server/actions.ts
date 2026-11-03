@@ -1,10 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect, unstable_rethrow } from "next/navigation";
-import { withUser, type Tx } from "@/db/client";
-import { requireUser } from "@/lib/auth/current-user";
-import { toAppError } from "@/lib/errors";
+import { redirect } from "next/navigation";
+import {
+  formCheckbox,
+  formNullable as nullableText,
+  formNullableNumber,
+  formNumber as num,
+  formText as text,
+  runAction,
+  runSimpleAction,
+  type ActionState,
+} from "@/lib/server-action";
 import {
   dependencyCreateSchema,
   goalCreateSchema,
@@ -17,49 +23,12 @@ import {
   visionSaveSchema,
 } from "../schemas";
 import * as service from "./service";
+import type { Tx } from "@/db/client";
 
-export type ActionState = {
-  ok: boolean;
-  message?: string;
-  fieldErrors?: Record<string, string[] | undefined>;
-} | null;
+export type { ActionState };
 
-/**
- * Every action: authenticate, run inside withUser() (RLS), map errors to a
- * form-friendly state, and re-render the goal pages on success.
- */
-async function run(fn: (tx: Tx) => Promise<unknown>, success?: string): Promise<ActionState> {
-  try {
-    const { userId } = await requireUser();
-    await withUser(userId, fn);
-  } catch (e) {
-    unstable_rethrow(e); // let redirect()/notFound() through
-    const err = toAppError(e);
-    return { ok: false, message: err.message, fieldErrors: err.fieldErrors };
-  }
-  revalidatePath("/goals", "layout");
-  return { ok: true, message: success };
-}
-
-// --- FormData helpers -------------------------------------------------------
-
-function text(fd: FormData, key: string): string | undefined {
-  const v = fd.get(key);
-  if (typeof v !== "string") return undefined;
-  const trimmed = v.trim();
-  return trimmed === "" ? undefined : trimmed;
-}
-
-function nullableText(fd: FormData, key: string): string | null {
-  return text(fd, key) ?? null;
-}
-
-function num(fd: FormData, key: string): number | undefined {
-  const v = text(fd, key);
-  if (v === undefined) return undefined;
-  const n = Number(v.replace(/,/g, ""));
-  return Number.isNaN(n) ? Number.NaN : n;
-}
+const run = (fn: (tx: Tx) => Promise<unknown>, success?: string) => runAction(fn, { success });
+const simple = (fn: (tx: Tx) => Promise<unknown>) => runSimpleAction(fn);
 
 function goalFromForm(fd: FormData) {
   return {
@@ -69,6 +38,7 @@ function goalFromForm(fd: FormData) {
     level: text(fd, "level"),
     category: nullableText(fd, "category"),
     parentId: nullableText(fd, "parentId"),
+    isKeyResult: formCheckbox(fd, "isKeyResult"),
     startDate: text(fd, "startDate"),
     targetDate: text(fd, "targetDate"),
     priority: num(fd, "priority"),
@@ -79,6 +49,7 @@ function goalFromForm(fd: FormData) {
     measurementMode: text(fd, "measurementMode"),
     baselineValue: num(fd, "baselineValue"),
     targetValue: num(fd, "targetValue"),
+    estimatedHours: formNullableNumber(fd, "estimatedHours"),
     notes: nullableText(fd, "notes"),
   };
 }
@@ -143,16 +114,38 @@ export async function setGoalStatusAction(goalId: string, _prev: ActionState, fd
 }
 
 export async function archiveGoalAction(goalId: string, parentId: string | null): Promise<void> {
-  const { userId } = await requireUser();
-  await withUser(userId, (tx) => service.archiveGoal(tx, goalId));
-  revalidatePath("/goals", "layout");
+  await simple((tx) => service.archiveGoal(tx, goalId));
   redirect(parentId ? `/goals/${parentId}` : "/goals");
 }
 
 export async function restoreGoalAction(goalId: string): Promise<void> {
-  const { userId } = await requireUser();
-  await withUser(userId, (tx) => service.restoreGoal(tx, goalId));
-  revalidatePath("/goals", "layout");
+  await simple((tx) => service.restoreGoal(tx, goalId));
+}
+
+/** Adds a key result to an objective, inheriting its level, period and pillar. */
+export async function addKeyResultAction(objectiveId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  return run(async (tx) => {
+    const objective = await service.getGoal(tx, objectiveId);
+    await service.createGoal(
+      tx,
+      goalCreateSchema.parse({
+        title: text(fd, "title"),
+        level: objective.level,
+        parentId: objective.id,
+        isKeyResult: true,
+        pillarId: objective.pillarId,
+        startDate: objective.startDate,
+        targetDate: objective.targetDate,
+        priority: objective.priority,
+        successMetric: text(fd, "successMetric") ?? text(fd, "title"),
+        unit: text(fd, "unit"),
+        currency: nullableText(fd, "currency"),
+        measurementMode: text(fd, "measurementMode"),
+        baselineValue: num(fd, "baselineValue"),
+        targetValue: num(fd, "targetValue"),
+      }),
+    );
+  }, "Key result added.");
 }
 
 // --- Measurements -----------------------------------------------------------
@@ -172,9 +165,7 @@ export async function addMeasurementAction(goalId: string, _prev: ActionState, f
 }
 
 export async function deleteMeasurementAction(goalId: string, measurementId: string): Promise<void> {
-  const { userId } = await requireUser();
-  await withUser(userId, (tx) => service.deleteMeasurement(tx, goalId, measurementId));
-  revalidatePath("/goals", "layout");
+  await simple((tx) => service.deleteMeasurement(tx, goalId, measurementId));
 }
 
 // --- Dependencies & links ---------------------------------------------------
@@ -194,9 +185,7 @@ export async function addDependencyAction(goalId: string, _prev: ActionState, fd
 }
 
 export async function removeDependencyAction(goalId: string, dependsOnGoalId: string): Promise<void> {
-  const { userId } = await requireUser();
-  await withUser(userId, (tx) => service.removeDependency(tx, goalId, dependsOnGoalId));
-  revalidatePath("/goals", "layout");
+  await simple((tx) => service.removeDependency(tx, goalId, dependsOnGoalId));
 }
 
 export async function addLinkAction(goalId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -214,9 +203,7 @@ export async function addLinkAction(goalId: string, _prev: ActionState, fd: Form
 }
 
 export async function removeLinkAction(goalId: string, relatedGoalId: string): Promise<void> {
-  const { userId } = await requireUser();
-  await withUser(userId, (tx) => service.removeLink(tx, goalId, relatedGoalId));
-  revalidatePath("/goals", "layout");
+  await simple((tx) => service.removeLink(tx, goalId, relatedGoalId));
 }
 
 // --- Tasks ------------------------------------------------------------------
@@ -231,7 +218,5 @@ export async function createTaskAction(goalId: string, _prev: ActionState, fd: F
 }
 
 export async function setTaskStatusAction(taskId: string, status: string): Promise<void> {
-  const { userId } = await requireUser();
-  await withUser(userId, (tx) => service.updateTask(tx, taskId, taskUpdateSchema.parse({ status })));
-  revalidatePath("/goals", "layout");
+  await simple((tx) => service.updateTask(tx, taskId, taskUpdateSchema.parse({ status })));
 }

@@ -55,6 +55,8 @@ export const goals = pgTable(
     level: text("level", { enum: GOAL_LEVELS }).notNull(),
     category: text("category", { enum: GOAL_CATEGORIES }),
     pillarId: uuid("pillar_id").notNull(),
+    /** A key result measures its parent objective (same level allowed). */
+    isKeyResult: boolean("is_key_result").notNull().default(false),
 
     title: text("title").notNull(),
     description: text("description"),
@@ -89,6 +91,8 @@ export const goals = pgTable(
       ),
 
     notes: text("notes"),
+    /** Planned effort, used by roadmap capacity checks. */
+    estimatedHours: numeric("estimated_hours", { precision: 8, scale: 1, mode: "number" }),
     sortOrder: integer("sort_order").notNull().default(0),
     customFields: jsonb("custom_fields").$type<Record<string, unknown>>().notNull().default({}),
     achievedAt: timestamp("achieved_at", { withTimezone: true }),
@@ -132,6 +136,15 @@ export const goals = pgTable(
       "goals_boolean_values_check",
       sql`${t.unit} <> 'boolean' or (${t.baselineValue} in (0, 1) and ${t.targetValue} in (0, 1) and ${t.measurementMode} = 'latest')`,
     ),
+    check(
+      "goals_key_results_scale_check",
+      sql`${t.measurementMode} <> 'key_results' or (${t.unit} = 'percent' and ${t.baselineValue} = 0 and ${t.targetValue} = 100)`,
+    ),
+    check(
+      "goals_key_result_shape_check",
+      sql`not ${t.isKeyResult} or (${t.parentId} is not null and ${t.measurementMode} <> 'key_results')`,
+    ),
+    check("goals_estimated_hours_check", sql`${t.estimatedHours} is null or ${t.estimatedHours} >= 0`),
 
     index("goals_user_journey_level_idx").on(t.userId, t.journeyId, t.level),
     index("goals_parent_idx").on(t.parentId),

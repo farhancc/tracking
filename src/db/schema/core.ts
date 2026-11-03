@@ -29,10 +29,13 @@ export const profiles = pgTable(
     timezone: text("timezone").notNull().default("UTC"),
     baseCurrency: char("base_currency", { length: 3 }).notNull().default("USD"),
     weekStartsOn: smallint("week_starts_on").notNull().default(1),
+    /** Hours per week available for the plan; quarters copy it and can override. */
+    weeklyCapacityHours: numeric("weekly_capacity_hours", { precision: 5, scale: 1, mode: "number" }).notNull().default(15),
     ...timestamps(),
   },
   (t) => [
     check("profiles_week_starts_on_check", sql`${t.weekStartsOn} between 0 and 6`),
+    check("profiles_weekly_capacity_check", sql`${t.weeklyCapacityHours} between 0 and 120`),
     check("profiles_base_currency_check", sql`${t.baseCurrency} ~ '^[A-Z]{3}$'`),
   ],
 );

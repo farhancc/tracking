@@ -32,7 +32,7 @@ Five-year vision (narrative, versioned)
 | Start date / Target date | `start_date`, `target_date` | Inside the parent's period and the journey |
 | Priority | `priority` | 1 Critical · 2 High · 3 Medium · 4 Low |
 | Status | `status` | not_started · in_progress · at_risk · on_hold · achieved · missed · abandoned |
-| Success metric | `success_metric`, `unit`, `currency`, `measurement_mode` | `latest` (a level: net worth, followers) or `cumulative` (amounts add up: revenue, dials) |
+| Success metric | `success_metric`, `unit`, `currency`, `measurement_mode` | `latest` (a level: net worth, followers), `cumulative` (amounts add up: revenue, dials) or `key_results` (an objective's progress = average outcome completion of its key results, see [09](09-roadmap.md)) |
 | Target value | `baseline_value`, `target_value` | Target below baseline = reduction goal (debt) |
 | Current value | `current_value`, `current_value_as_of` | **Derived** from `goal_measurements` by trigger. The app cannot write it. |
 | Completion percentage | `completion_pct` | Generated column: `(current − baseline) / (target − baseline)`, clamped 0–100 |
