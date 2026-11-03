@@ -92,6 +92,20 @@
       "when": 1793699394256,
       "tag": "0012_communication_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793700039071,
+      "tag": "0013_psychology",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793700040101,
+      "tag": "0014_psychology_rules",
+      "breakpoints": true
     }
   ]
 }

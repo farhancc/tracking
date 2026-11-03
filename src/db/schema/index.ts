@@ -6,3 +6,4 @@ export * from "./roadmap";
 export * from "./daily";
 export * from "./sales";
 export * from "./communication";
+export * from "./psychology";
