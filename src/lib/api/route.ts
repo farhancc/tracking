@@ -77,3 +77,40 @@ export function apiRoute<P = Record<string, never>>(
     }
   };
 }
+
+/**
+ * Like apiRoute, but without wrapping the handler in a database transaction,
+ * for long-running work (e.g. calls to an external model) that opens its own
+ * short transactions as needed.
+ */
+export function apiRouteNoTx(handler: (ctx: Omit<Context<Record<string, never>>, "tx">) => Promise<unknown>, options: { status?: number } = {}) {
+  return async (request: NextRequest): Promise<Response> => {
+    try {
+      await connection();
+      const auth = await authenticateRequest(request);
+      if (!auth) throw new AppError(401, "unauthenticated", "Sign in or send a valid Bearer token.");
+      if (auth.via === "cookie" && !SAFE_METHODS.has(request.method) && !isSameOrigin(request)) {
+        throw new AppError(403, "bad_origin", "Cross-origin requests are not allowed.");
+      }
+      const body = async <S extends z.ZodType>(schema: S) => {
+        if (!(request.headers.get("content-type") ?? "").includes("application/json")) {
+          throw new AppError(415, "unsupported_media_type", "Send JSON with Content-Type: application/json.");
+        }
+        let raw: unknown;
+        try {
+          raw = await request.json();
+        } catch {
+          throw new AppError(400, "invalid_json", "The request body is not valid JSON.");
+        }
+        return schema.parse(raw) as z.infer<S>;
+      };
+      const query = <S extends z.ZodType>(schema: S) => schema.parse(Object.fromEntries(request.nextUrl.searchParams)) as z.infer<S>;
+      const result = await handler({ request, params: {} as Record<string, never>, user: auth.user, body, query });
+      if (result instanceof Response) return result;
+      return Response.json({ data: result }, { status: options.status ?? 200, headers: { "Cache-Control": "no-store" } });
+    } catch (e) {
+      unstable_rethrow(e);
+      return apiError(toAppError(e));
+    }
+  };
+}
