@@ -72,7 +72,7 @@ The **content calendar** (`/content/calendar?month=YYYY-MM`) is a month grid on 
 
 ## 4. Metrics
 
-`content_metrics` stores dated snapshots copied from each platform's insights. The counts are cumulative, so the latest snapshot is the current figure. Capturing the same date again corrects it.
+`content_metrics` stores dated snapshots copied from each platform's insights. The counts are cumulative. Each metric's current figure is its **most recently recorded value** (`mergeLatest`), so a partial capture with only some numbers updates those numbers without erasing the others. Capturing the same date again corrects it.
 
 Fields:
 
@@ -93,7 +93,7 @@ Rules:
 
 **Engagement** is calculated, never typed in: likes + comments + shares + saves, from what was recorded. **Engagement rate** is engagement ÷ reach, falling back to views and then impressions, and the base used is always shown ("7.8 % of views").
 
-The analytics across content (best pillar, format, trends, leads and trust) are in Prompt 12.
+Platform-only extras, such as Instagram reach from non-followers or YouTube impressions click-through rate, are stored in `platform_metrics`. The analytics across content are in [docs/18](18-content-analytics.md).
 
 ## 5. REST API (`/api/v1/content`)
 

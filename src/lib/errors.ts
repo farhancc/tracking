@@ -33,6 +33,7 @@ const CONSTRAINT_MESSAGES: Record<string, string> = {
   goal_links_canonical_order_check: "A goal cannot be linked to itself.",
   journeys_one_active_per_user: "You already have an active five-year journey.",
   visions_journey_version_key: "The vision was changed by another save. Reload and try again.",
+  prospects_content_item_fk: "That content item doesn't exist.",
 };
 
 type PgError = { code: string; message: string; detail?: string; constraint?: string };

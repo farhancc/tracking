@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CONTENT_STATUSES, FORMAT_LABELS, FORMATS, isFormatFor, METRIC_FIELDS, PLATFORMS, type Format, type Platform } from "@/lib/domain/content";
+import { ALL_EXTRA_KEYS, CONTENT_STATUSES, FORMAT_LABELS, FORMATS, isFormatFor, METRIC_FIELDS, PLATFORMS, type Format, type Platform } from "@/lib/domain/content";
 import { isIsoDate } from "@/lib/domain/dates";
 import { patchOf } from "@/lib/validation";
 
@@ -76,15 +76,41 @@ export const metricSchema = z
     capturedOn: optDate,
     notes: optionalText(2000),
     ...Object.fromEntries(METRIC_FIELDS.map((f) => [f, metricNumber])),
+    /** Platform-specific extras; form fields arrive as x_<key>. */
+    platformMetrics: z.record(z.enum(ALL_EXTRA_KEYS as [string, ...string[]]), z.coerce.number().min(0).max(1e13)).optional(),
+    ...Object.fromEntries(ALL_EXTRA_KEYS.map((k) => [`x_${k}`, metricNumber])),
+  })
+  .transform((v) => {
+    const r = v as Record<string, unknown>;
+    const extras: Record<string, number> = { ...((r.platformMetrics as Record<string, number> | undefined) ?? {}) };
+    for (const k of ALL_EXTRA_KEYS) {
+      const val = r[`x_${k}`];
+      delete r[`x_${k}`];
+      if (typeof val === "number") extras[k] = val;
+    }
+    return { ...r, platformMetrics: extras };
   })
   .superRefine((v, ctx) => {
     const r = v as Record<string, unknown>;
     for (const f of ["avgRetentionPct", "completionRatePct"]) {
       if (typeof r[f] === "number" && (r[f] as number) > 100) ctx.addIssue({ code: "custom", path: [f], message: "Percentages are 0–100." });
     }
-    if (!METRIC_FIELDS.some((f) => r[f] != null)) ctx.addIssue({ code: "custom", path: ["views"], message: "Enter at least one number from the platform's insights." });
+    if (!METRIC_FIELDS.some((f) => r[f] != null) && !Object.keys((r.platformMetrics as object) ?? {}).length) ctx.addIssue({ code: "custom", path: ["views"], message: "Enter at least one number from the platform's insights." });
   });
-export type MetricInput = { capturedOn: string | null; notes: string | null } & Partial<Record<(typeof METRIC_FIELDS)[number], number | null>>;
+export type MetricInput = { capturedOn: string | null; notes: string | null; platformMetrics: Record<string, number> } & Partial<Record<(typeof METRIC_FIELDS)[number], number | null>>;
+
+export const audienceSchema = z.object({
+  platform: z.enum(PLATFORMS),
+  capturedOn: optDate,
+  followers: z.coerce.number().int().min(0, "Followers can't be negative.").max(1e10),
+  notes: optionalText(500),
+});
+
+export const analyticsQuerySchema = z.object({
+  window: z.enum(["30", "90", "365", "all"]).optional(),
+  platform: z.enum(PLATFORMS).optional(),
+  sort: z.enum(["business", "leads", "trust", "engagement", "views", "followers"]).optional(),
+});
 
 export const itemQuerySchema = z.object({
   status: z.enum(CONTENT_STATUSES).optional(),

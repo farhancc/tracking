@@ -62,6 +62,8 @@ export const prospectCreateSchema = z.object({
   status: z.enum(PROSPECT_STATUSES).default("new"),
   nextFollowUpOn: isoDate.nullish().transform((v) => v ?? null),
   notes: optionalText(5000),
+  /** The content item this lead came from (content analytics attribution). */
+  contentItemId: z.uuid().nullish().transform((v) => v ?? null),
 });
 export const prospectUpdateSchema = patchOf(prospectCreateSchema).extend({ archived: z.boolean().optional() });
 export type ProspectCreateInput = z.infer<typeof prospectCreateSchema>;

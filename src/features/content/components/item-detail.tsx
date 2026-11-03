@@ -17,6 +17,7 @@ import {
   METRICS_BY_PLATFORM,
   nextStatus,
   PERCENT_FIELDS,
+  PLATFORM_EXTRA_METRICS,
   PLATFORM_LABELS,
   PLATFORMS,
   statusIndex,
@@ -209,6 +210,16 @@ export async function ItemDetail({ params }: { params: Promise<{ id: string }> }
                         {data.latest.engagementRate ? `${(data.latest.engagementRate.rate * 100).toFixed(1)}% of ${data.latest.engagementRate.base}` : "—"}
                       </dd>
                     </div>
+                    {i.platform
+                      ? PLATFORM_EXTRA_METRICS[i.platform]
+                          .filter((x) => data.latest!.snapshot.platformMetrics[x.key] != null)
+                          .map((x) => (
+                            <div key={x.key}>
+                              <dt className="text-xs text-muted-foreground">{x.label}</dt>
+                              <dd className="font-medium tabular-nums">{fmtNum(data.latest!.snapshot.platformMetrics[x.key])}</dd>
+                            </div>
+                          ))
+                      : null}
                     {(["views", "reach", "leads", "followersGained"] as const).map((f) => (
                       <div key={f}>
                         <dt className="text-xs text-muted-foreground">{METRIC_LABELS[f]}</dt>
@@ -238,6 +249,16 @@ export async function ItemDetail({ params }: { params: Promise<{ id: string }> }
                         </Field>
                       ))}
                     </div>
+                    {i.platform ? (
+                      <fieldset className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <legend className="mb-2 text-xs font-medium text-muted-foreground">{PLATFORM_LABELS[i.platform]}-only</legend>
+                        {PLATFORM_EXTRA_METRICS[i.platform].map((x) => (
+                          <Field key={x.key} label={x.label} htmlFor={`mx-${x.key}`}>
+                            <Input id={`mx-${x.key}`} name={`x_${x.key}`} type="number" min="0" max={x.percent ? "100" : undefined} step={x.percent ? "0.01" : "1"} inputMode="decimal" />
+                          </Field>
+                        ))}
+                      </fieldset>
+                    ) : null}
                     <Field label="Notes" htmlFor="m-notes">
                       <Input id="m-notes" name="notes" maxLength={2000} />
                     </Field>

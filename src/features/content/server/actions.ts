@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import type { Tx } from "@/db/client";
 import { formObject, runAction, runSimpleAction, type ActionState } from "@/lib/server-action";
-import { brandSchema, itemCreateSchema, itemUpdateSchema, metricSchema, pillarCreateSchema, pillarUpdateSchema, repurposeSchema, sourceSchema, type MetricInput } from "../schemas";
+import { audienceSchema, brandSchema, itemCreateSchema, itemUpdateSchema, metricSchema, pillarCreateSchema, pillarUpdateSchema, repurposeSchema, sourceSchema, type MetricInput } from "../schemas";
+import * as analytics from "./analytics";
 import * as service from "./service";
 
 const run = (fn: (tx: Tx) => Promise<unknown>, success?: string) => runAction(fn, { success });
@@ -79,4 +80,12 @@ export async function recordMetricsAction(itemId: string, _prev: ActionState, fd
 
 export async function deleteMetricsAction(id: string): Promise<void> {
   await runSimpleAction((tx) => service.deleteMetrics(tx, id));
+}
+
+export async function recordAudienceAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  return run((tx) => analytics.recordAudience(tx, audienceSchema.parse(formObject(fd))), "Saved.");
+}
+
+export async function deleteAudienceAction(id: string): Promise<void> {
+  await runSimpleAction((tx) => analytics.deleteAudience(tx, id));
 }

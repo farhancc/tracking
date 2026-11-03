@@ -3,6 +3,7 @@ import { withUser } from "@/db/client";
 import { getWorkspace } from "@/features/goals/server/service";
 import { requireUser } from "@/lib/auth/current-user";
 import type { SalesPeriod } from "@/lib/domain/sales";
+import { listPublishedContent } from "@/features/content/server/service";
 import { getDashboard, listJournal, listProspects } from "./service";
 
 export async function loadSalesDashboard(query: { period: SalesPeriod; anchor?: string; trackId?: string }) {
@@ -12,7 +13,8 @@ export async function loadSalesDashboard(query: { period: SalesPeriod; anchor?: 
     if (!ws.journey) return { ready: false as const, workspace: ws };
     const dashboard = await getDashboard(tx, query);
     const prospects = await listProspects(tx, { trackId: dashboard.track?.id });
-    return { ready: true as const, ...dashboard, prospects };
+    const content = await listPublishedContent(tx);
+    return { ready: true as const, ...dashboard, prospects, content };
   });
 }
 

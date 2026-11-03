@@ -155,6 +155,21 @@ export function engagementRate(m: MetricSnapshot): { rate: number; base: "reach"
   return null;
 }
 
+/**
+ * Current figures: each metric's most recently recorded value. A partial
+ * capture (only some numbers) updates those numbers without erasing the rest.
+ */
+export function mergeLatest<T extends MetricSnapshot & { platformMetrics?: Record<string, number> }>(snaps: T[]): T | null {
+  if (!snaps.length) return null;
+  const sorted = [...snaps].sort((a, b) => b.capturedOn.localeCompare(a.capturedOn));
+  const out = { ...sorted[0], platformMetrics: { ...(sorted[0].platformMetrics ?? {}) } } as T & { platformMetrics: Record<string, number> };
+  for (const s of sorted.slice(1)) {
+    for (const f of METRIC_FIELDS) if (out[f] == null && s[f] != null) (out as MetricSnapshot)[f] = s[f];
+    for (const [k, v] of Object.entries(s.platformMetrics ?? {})) if (out.platformMetrics[k] == null) out.platformMetrics[k] = v;
+  }
+  return out;
+}
+
 /** The snapshot to report: the latest one captured. */
 export function latestSnapshot<T extends { capturedOn: IsoDate }>(snaps: T[]): T | null {
   return snaps.reduce<T | null>((best, s) => (!best || s.capturedOn > best.capturedOn ? s : best), null);
@@ -178,3 +193,23 @@ export function monthGrid(month: IsoDate, weekStartsOn: 0 | 1 = 1): IsoDate[][] 
   } while (cursor.getUTCMonth() === first.getUTCMonth());
   return weeks;
 }
+
+/** Extra metrics only one platform reports, stored in content_metrics.platform_metrics. */
+export const PLATFORM_EXTRA_METRICS: Record<Platform, readonly { key: string; label: string; percent?: boolean }[]> = {
+  instagram: [
+    { key: "nonFollowerReachPct", label: "Reach from non-followers (%)", percent: true },
+    { key: "replays", label: "Replays" },
+    { key: "sends", label: "Sends (DM shares)" },
+  ],
+  youtube: [
+    { key: "impressionsCtrPct", label: "Impressions click-through rate (%)", percent: true },
+    { key: "subscribersLost", label: "Subscribers lost" },
+    { key: "endScreenClicks", label: "End-screen clicks" },
+  ],
+  linkedin: [
+    { key: "sends", label: "Sends" },
+    { key: "clickThroughRatePct", label: "Click-through rate (%)", percent: true },
+    { key: "profileViewsFromPost", label: "Profile views from this post" },
+  ],
+};
+export const ALL_EXTRA_KEYS = [...new Set(Object.values(PLATFORM_EXTRA_METRICS).flatMap((l) => l.map((m) => m.key)))];

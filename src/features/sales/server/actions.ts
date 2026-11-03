@@ -60,6 +60,7 @@ export async function createProspectAction(trackId: string | null, _prev: Action
         role: formNullable(fd, "role"),
         source: formNullable(fd, "source"),
         nextFollowUpOn: formNullable(fd, "nextFollowUpOn"),
+        contentItemId: formNullable(fd, "contentItemId"),
       }),
     );
   }, "Prospect added.");

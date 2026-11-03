@@ -4,7 +4,7 @@ A personal operating system for a five-year journey toward becoming a successful
 
 FiveYearOS tracks four strategic pillars — **Sales Mastery**, **Product Entrepreneurship**, **Personal Branding** and **Financial Independence** — from a five-year vision down to today's calls, habits and journal entry, and turns that data into weekly, monthly, quarterly and annual reviews.
 
-> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) weekly planning ([docs/10](docs/10-weekly-planning.md)) the daily execution dashboard ([docs/11](docs/11-daily-dashboard.md)) the sales mastery tracker ([docs/12](docs/12-sales-mastery.md)) the communication mastery system ([docs/13](docs/13-communication-mastery.md)) the sales psychology learning lab ([docs/14](docs/14-psychology-lab.md)) the software product portfolio ([docs/15](docs/15-product-portfolio.md)) the product validation tracker ([docs/16](docs/16-product-validation.md)) and content management ([docs/17](docs/17-content-management.md)) are implemented, with schema, REST API, UI and tests. Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
+> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) weekly planning ([docs/10](docs/10-weekly-planning.md)) the daily execution dashboard ([docs/11](docs/11-daily-dashboard.md)) the sales mastery tracker ([docs/12](docs/12-sales-mastery.md)) the communication mastery system ([docs/13](docs/13-communication-mastery.md)) the sales psychology learning lab ([docs/14](docs/14-psychology-lab.md)) the software product portfolio ([docs/15](docs/15-product-portfolio.md)) the product validation tracker ([docs/16](docs/16-product-validation.md)) content management ([docs/17](docs/17-content-management.md)) and content analytics ([docs/18](docs/18-content-analytics.md)) are implemented, with schema, REST API, UI and tests. Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
 
 ## Planned stack
 
@@ -32,6 +32,7 @@ Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui · Neon serverless
 | 15 | [Product portfolio](docs/15-product-portfolio.md) | Products, stages, MRR/churn, revenue & expense reports, backlog, feedback, bugs, releases, invest/pause/discontinue |
 | 16 | [Product validation](docs/16-product-validation.md) | 12 validation steps with evidence, interview log, competitors, demand ladder, MVP gate |
 | 17 | [Content management](docs/17-content-management.md) | Positioning, pillars, 8-stage pipeline, idea library, calendar, metric snapshots |
+| 18 | [Content analytics](docs/18-content-analytics.md) | Trust signals, leads and won deals by pillar/format/topic, trends, audience growth |
 | ADR | [ADR-001: JWT auth and Neon Postgres](docs/adr/ADR-001-jwt-auth-and-neon.md) | Why the data and auth platform is Neon + self-issued JWTs instead of Supabase |
 
 ## Run it locally

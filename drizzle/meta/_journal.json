@@ -148,6 +148,20 @@
       "when": 1793703228475,
       "tag": "0020_content_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793703986971,
+      "tag": "0021_content_analytics",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793703988260,
+      "tag": "0022_content_analytics_rules",
+      "breakpoints": true
     }
   ]
 }

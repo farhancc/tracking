@@ -15,6 +15,7 @@ import {
 } from "../../lib/domain/sales";
 import { inList, ownerColumn, pk, timestamps } from "./_columns";
 import { users } from "./auth";
+import { contentItems } from "./content";
 
 const money = (name: string) => numeric(name, { precision: 20, scale: 2, mode: "number" });
 
@@ -54,11 +55,15 @@ export const prospects = pgTable(
     status: text("status", { enum: PROSPECT_STATUSES }).notNull().default("new"),
     nextFollowUpOn: date("next_follow_up_on", { mode: "string" }),
     notes: text("notes"),
+    /** The piece of content this lead came from (attribution for content analytics). */
+    contentItemId: uuid("content_item_id"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     ...timestamps(),
   },
   (t) => [
     unique("prospects_id_user_key").on(t.id, t.userId),
+    foreignKey({ name: "prospects_content_item_fk", columns: [t.contentItemId, t.userId], foreignColumns: [contentItems.id, contentItems.userId] }).onDelete("restrict"),
+    index("prospects_user_content_idx").on(t.userId, t.contentItemId),
     foreignKey({ name: "prospects_track_fk", columns: [t.trackId, t.userId], foreignColumns: [salesTracks.id, salesTracks.userId] }).onDelete("restrict"),
     check("prospects_status_check", sql`${t.status} in (${inList(PROSPECT_STATUSES)})`),
     check("prospects_name_check", sql`length(btrim(${t.name})) between 1 and 200`),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { engagement, engagementRate, isFormatFor, latestSnapshot, monthGrid, nextStatus, needsPlatform, type MetricSnapshot } from "./content";
+import { engagement, engagementRate, isFormatFor, latestSnapshot, mergeLatest, monthGrid, nextStatus, needsPlatform, type MetricSnapshot } from "./content";
 
 const snap = (over: Partial<MetricSnapshot>): MetricSnapshot => ({
   capturedOn: "2026-10-10",
@@ -41,6 +41,16 @@ describe("content domain", () => {
     expect(engagementRate(snap({ likes: 10, views: 1000 }))).toEqual({ rate: 0.01, base: "views" });
     expect(engagementRate(snap({ likes: 10 }))).toBeNull();
     expect(latestSnapshot([snap({ capturedOn: "2026-10-01" }), snap({ capturedOn: "2026-10-09", views: 5 }), snap({ capturedOn: "2026-10-03" })])?.views).toBe(5);
+  });
+
+  it("keeps each metric's latest recorded value across partial captures", () => {
+    const merged = mergeLatest([
+      { ...snap({ capturedOn: "2026-10-01", views: 100, leads: 2, saves: 5 }), platformMetrics: { replays: 3 } },
+      { ...snap({ capturedOn: "2026-10-08", views: 250 }), platformMetrics: {} },
+      { ...snap({ capturedOn: "2026-10-04", views: 180, saves: 9 }), platformMetrics: { replays: 7 } },
+    ]);
+    expect(merged).toMatchObject({ capturedOn: "2026-10-08", views: 250, saves: 9, leads: 2, platformMetrics: { replays: 7 } });
+    expect(mergeLatest([])).toBeNull();
   });
 
   it("builds a Monday-first month grid", () => {

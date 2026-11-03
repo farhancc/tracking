@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, Input, Select, Textarea } from "@/components/ui/form-controls";
 import { Progress } from "@/components/ui/progress";
 import { JourneySetupForm } from "@/features/goals/components/journey-setup-form";
+import { PLATFORM_LABELS } from "@/lib/domain/content";
 import { formatMeasure } from "@/lib/domain/goals";
 import {
   ACTIVITY_KIND_LABELS,
@@ -459,6 +460,18 @@ export async function SalesDashboard({ searchParams }: { searchParams: Promise<R
                   <Field label="Next follow-up" htmlFor="np-follow">
                     <Input id="np-follow" name="nextFollowUpOn" type="date" />
                   </Field>
+                  {data.content.length ? (
+                    <Field label="Came from content" htmlFor="np-content" hint="Credits this lead to a post or video in content analytics" className="sm:col-span-2">
+                      <Select id="np-content" name="contentItemId" defaultValue="">
+                        <option value="">Not from content</option>
+                        {data.content.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.title} ({c.platform ? PLATFORM_LABELS[c.platform] : ""}, {c.publishedOn})
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  ) : null}
                 </div>
               </ActionForm>
             </details>

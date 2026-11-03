@@ -15,10 +15,11 @@ import {
   engagement,
   engagementRate,
   isPublished,
-  latestSnapshot,
+  mergeLatest,
   monthGrid,
   needsPlatform,
   nextStatus,
+  PLATFORM_EXTRA_METRICS,
   statusIndex,
   type ContentStatus,
   type MetricSnapshot,
@@ -173,12 +174,13 @@ const toSnapshot = (m: MetricRow): MetricSnapshot => m;
 async function latestMetrics(tx: Tx, itemIds: string[]) {
   const out = new Map<string, { snapshot: MetricRow; engagement: number | null; engagementRate: ReturnType<typeof engagementRate> }>();
   if (!itemIds.length) return out;
-  const rows = await tx
-    .selectDistinctOn([contentMetrics.itemId])
-    .from(contentMetrics)
-    .where(inArray(contentMetrics.itemId, itemIds))
-    .orderBy(contentMetrics.itemId, desc(contentMetrics.capturedOn));
-  for (const r of rows) out.set(r.itemId, { snapshot: r, engagement: engagement(r), engagementRate: engagementRate(toSnapshot(r)) });
+  const rows = await tx.select().from(contentMetrics).where(inArray(contentMetrics.itemId, itemIds));
+  const byItem = new Map<string, MetricRow[]>();
+  for (const r of rows) byItem.set(r.itemId, [...(byItem.get(r.itemId) ?? []), r]);
+  for (const [itemId, snaps] of byItem) {
+    const merged = mergeLatest(snaps)!;
+    out.set(itemId, { snapshot: merged, engagement: engagement(merged), engagementRate: engagementRate(toSnapshot(merged)) });
+  }
   return out;
 }
 
@@ -211,7 +213,7 @@ export async function getItem(tx: Tx, id: string) {
   const item = await findItem(tx, id);
   const sources = await tx.select().from(contentSources).where(eq(contentSources.itemId, id)).orderBy(asc(contentSources.createdAt));
   const metrics = await tx.select().from(contentMetrics).where(eq(contentMetrics.itemId, id)).orderBy(desc(contentMetrics.capturedOn));
-  const latest = latestSnapshot(metrics);
+  const latest = mergeLatest(metrics);
   const versions = await tx
     .select({ id: contentItems.id, title: contentItems.title, platform: contentItems.platform, format: contentItems.format, status: contentItems.status })
     .from(contentItems)
@@ -244,13 +246,16 @@ export async function deleteSource(tx: Tx, id: string) {
 /** One snapshot per item and date: capturing the same day again corrects it. */
 export async function recordMetrics(tx: Tx, itemId: string, input: MetricInput) {
   const ws = await requireWorkspace(tx);
-  await findItem(tx, itemId);
-  const { capturedOn, notes, ...counts } = input;
-  const values = { itemId, capturedOn: capturedOn ?? ws.today, notes, ...counts };
+  const item = await findItem(tx, itemId);
+  const { capturedOn, notes, platformMetrics, ...counts } = input;
+  // Keep only the extras this item's platform reports.
+  const allowed = new Set((item.platform ? PLATFORM_EXTRA_METRICS[item.platform] : []).map((m) => m.key));
+  const extras = Object.fromEntries(Object.entries(platformMetrics ?? {}).filter(([k]) => allowed.has(k)));
+  const values = { itemId, capturedOn: capturedOn ?? ws.today, notes, platformMetrics: extras, ...counts };
   const [row] = await tx
     .insert(contentMetrics)
     .values(values)
-    .onConflictDoUpdate({ target: [contentMetrics.itemId, contentMetrics.capturedOn], set: { ...counts, notes } })
+    .onConflictDoUpdate({ target: [contentMetrics.itemId, contentMetrics.capturedOn], set: { ...counts, notes, platformMetrics: extras } })
     .returning();
   return row;
 }
@@ -305,4 +310,14 @@ export async function getCalendar(tx: Tx, month?: string) {
     return out;
   });
   return { today: ws.today, month: m, weeks, entries };
+}
+
+/** Published content for attribution pickers (e.g. "this lead came from…"). */
+export async function listPublishedContent(tx: Tx) {
+  return tx
+    .select({ id: contentItems.id, title: contentItems.title, platform: contentItems.platform, publishedOn: contentItems.publishedOn })
+    .from(contentItems)
+    .where(and(isNull(contentItems.archivedAt), inArray(contentItems.status, ["published", "reviewed"])))
+    .orderBy(desc(contentItems.publishedOn))
+    .limit(200);
 }

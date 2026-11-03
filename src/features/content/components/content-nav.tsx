@@ -5,6 +5,7 @@ const LINKS = [
   ["/content", "Pipeline"],
   ["/content/ideas", "Idea library"],
   ["/content/calendar", "Calendar"],
+  ["/content/analytics", "Analytics"],
 ] as const;
 
 export function ContentNav({ current }: { current: (typeof LINKS)[number][0] }) {

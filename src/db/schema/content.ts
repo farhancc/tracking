@@ -3,7 +3,7 @@
  * through the production pipeline, research sources and metric snapshots.
  */
 import { sql } from "drizzle-orm";
-import { type AnyPgColumn, check, date, foreignKey, index, integer, numeric, pgTable, smallint, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, check, date, foreignKey, index, integer, jsonb, numeric, pgTable, smallint, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { CONTENT_STATUSES, FORMATS, FORMATS_BY_PLATFORM, PLATFORMS } from "../../lib/domain/content";
 import { inList, ownerColumn, pk, timestamps } from "./_columns";
 import { users } from "./auth";
@@ -129,6 +129,8 @@ export const contentMetrics = pgTable(
     leads: count("leads"),
     salesCount: count("sales_count"),
     salesAmount: numeric("sales_amount", { precision: 20, scale: 2, mode: "number" }),
+    /** Platform-specific extras (PLATFORM_EXTRA_METRICS), numbers only. */
+    platformMetrics: jsonb("platform_metrics").$type<Record<string, number>>().notNull().default({}),
     notes: text("notes"),
     ...timestamps(),
   },
@@ -147,5 +149,24 @@ export const contentMetrics = pgTable(
       sql`(${t.avgRetentionPct} is null or ${t.avgRetentionPct} between 0 and 100) and (${t.completionRatePct} is null or ${t.completionRatePct} between 0 and 100)`,
     ),
     index("content_metrics_user_date_idx").on(t.userId, t.capturedOn),
+  ],
+);
+
+/** Follower / subscriber counts per platform over time: audience growth, one signal among many. */
+export const audienceSnapshots = pgTable(
+  "audience_snapshots",
+  {
+    id: pk(),
+    userId: ownerColumn().references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform", { enum: PLATFORMS }).notNull(),
+    capturedOn: date("captured_on", { mode: "string" }).notNull(),
+    followers: integer("followers").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("audience_snapshots_user_platform_date_key").on(t.userId, t.platform, t.capturedOn),
+    check("audience_snapshots_platform_check", sql`${t.platform} in (${inList(PLATFORMS)})`),
+    check("audience_snapshots_followers_check", sql`${t.followers} >= 0`),
   ],
 );
