@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     DEV_TOKEN_TTL_SECONDS,
   );
 
-  const response = NextResponse.redirect(new URL("/goals", request.url), 303);
+  const response = NextResponse.redirect(new URL("/today", request.url), 303);
   response.cookies.set(ACCESS_COOKIE, token, {
     httpOnly: true,
     secure: true,

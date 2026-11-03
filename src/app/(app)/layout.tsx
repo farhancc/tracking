@@ -3,6 +3,7 @@ import { Target } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
 
 const NAV = [
+  { href: "/today", label: "Today" },
   { href: "/goals", label: "Goals" },
   { href: "/week", label: "Week" },
   { href: "/roadmap", label: "Roadmap" },
@@ -14,7 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:gap-4">
-          <Link href="/goals" className="flex shrink-0 items-center gap-2 font-semibold" aria-label="FiveYearOS home">
+          <Link href="/today" className="flex shrink-0 items-center gap-2 font-semibold" aria-label="FiveYearOS home">
             <Target className="size-5" aria-hidden /> <span className="hidden sm:inline">FiveYearOS</span>
           </Link>
           <nav aria-label="Main" className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm sm:gap-1">

@@ -204,7 +204,7 @@ export async function WeekView({ weekStart }: { weekStart?: string }) {
                           action={rescheduleTaskAction.bind(null, t.id)}
                           submitLabel="Reschedule"
                           submitVariant="outline"
-                          className="flex-row items-center gap-2"
+                          inline className="items-center gap-2"
                           submitClassName="h-8"
                         >
                           <Input name="dueOn" type="date" min={ws} aria-label={`New date for ${t.title}`} className="h-8 w-40" />

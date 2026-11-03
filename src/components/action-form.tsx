@@ -20,6 +20,7 @@ export function ActionForm({
   submitClassName,
   submitVariant = "default",
   resetOnSuccess = true,
+  inline = false,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   children: ReactNode;
@@ -29,6 +30,8 @@ export function ActionForm({
   submitClassName?: string;
   submitVariant?: "default" | "outline" | "secondary" | "destructive";
   resetOnSuccess?: boolean;
+  /** Fields and button on one row; errors go on their own line and success messages are omitted. */
+  inline?: boolean;
 }) {
   const [rawState, formAction, pending] = useActionState(action, null);
   const state = useFreshState(rawState);
@@ -42,31 +45,47 @@ export function ActionForm({
     ? Object.values(state.fieldErrors).flatMap((m) => m ?? [])
     : [];
 
+  const error =
+    state && !state.ok ? (
+      <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p>{state.message}</p>
+        {fieldMessages.length > 0 && fieldMessages[0] !== state.message ? (
+          <ul className="mt-1 list-disc pl-4 text-xs">
+            {fieldMessages.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    ) : null;
+  const submit = (
+    <Button type="submit" variant={submitVariant} disabled={pending} className={submitClassName}>
+      {pending ? pendingLabel : submitLabel}
+    </Button>
+  );
+
+  if (inline) {
+    return (
+      <form ref={ref} action={formAction} className="flex min-w-0 flex-col gap-2">
+        <div className={cn("flex flex-row items-center gap-2", className)}>
+          {children}
+          {submit}
+        </div>
+        {error}
+      </form>
+    );
+  }
+
   return (
     <form ref={ref} action={formAction} className={cn("flex flex-col gap-3", className)}>
       {children}
-      {state && !state.ok ? (
-        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          <p>{state.message}</p>
-          {fieldMessages.length > 0 && fieldMessages[0] !== state.message ? (
-            <ul className="mt-1 list-disc pl-4 text-xs">
-              {fieldMessages.map((m) => (
-                <li key={m}>{m}</li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
+      {error}
       {state?.ok && state.message ? (
         <p role="status" className="text-sm text-success">
           {state.message}
         </p>
       ) : null}
-      <div>
-        <Button type="submit" variant={submitVariant} disabled={pending} className={submitClassName}>
-          {pending ? pendingLabel : submitLabel}
-        </Button>
-      </div>
+      <div>{submit}</div>
     </form>
   );
 }

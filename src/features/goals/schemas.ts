@@ -182,6 +182,7 @@ export const journeyCreateSchema = z.object({
 export type JourneyCreateInput = z.infer<typeof journeyCreateSchema>;
 
 const minutes = z.number().int().min(0).max(10000).nullish().transform((v) => v ?? null);
+const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, "Use a time like 09:30.");
 const taskPriority = z.number().int().refine((v) => (TASK_PRIORITIES as readonly number[]).includes(v), "Priority is 1–4.");
 
 export const taskCreateSchema = z.object({
@@ -189,6 +190,8 @@ export const taskCreateSchema = z.object({
   goalId: z.uuid().nullish().transform((v) => v ?? null),
   dueOn: isoDate.nullish().transform((v) => v ?? null),
   plannedWeek: isoDate.nullish().transform((v) => v ?? null),
+  scheduledOn: isoDate.nullish().transform((v) => v ?? null),
+  scheduledStart: clockTime.nullish().transform((v) => v ?? null),
   priority: taskPriority.default(3),
   estimatedMinutes: minutes,
   isDeliverable: z.boolean().default(false),
@@ -202,6 +205,8 @@ export const taskUpdateSchema = z
     status: z.enum(TASK_STATUSES),
     dueOn: isoDate.nullable(),
     plannedWeek: isoDate.nullable(),
+    scheduledOn: isoDate.nullable(),
+    scheduledStart: clockTime.nullable(),
     priority: taskPriority,
     estimatedMinutes: minutes,
     actualMinutes: minutes,

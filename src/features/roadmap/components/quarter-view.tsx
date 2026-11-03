@@ -209,7 +209,7 @@ export async function QuarterView({ params }: { params: Promise<{ quarter: strin
                         submitLabel="Update"
                         submitVariant="outline"
                         resetOnSuccess={false}
-                        className="flex-row flex-wrap items-end gap-2"
+                        inline className="flex-wrap items-end gap-2"
                         submitClassName="h-8"
                       >
                         <Select name="status" defaultValue={d.status} aria-label={`Status of ${d.title}`} className="h-8 w-36" key={d.status}>
@@ -288,7 +288,7 @@ export async function QuarterView({ params }: { params: Promise<{ quarter: strin
                           submitLabel="Save"
                           submitVariant="outline"
                           resetOnSuccess={false}
-                          className="flex-row items-end gap-2"
+                          inline className="items-end gap-2"
                           submitClassName="h-8"
                         >
                           <Input name="actualValue" type="number" step="any" defaultValue={k.actualValue ?? ""} aria-label={`Actual for ${k.name}`} className="h-8 w-28" />

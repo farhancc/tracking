@@ -39,7 +39,7 @@ export function WeekTaskRow({ task }: { task: TaskRow }) {
         submitLabel="Log time"
         submitVariant="outline"
         resetOnSuccess={false}
-        className="flex-row items-center gap-2 pl-11 sm:pl-0"
+        inline className="items-center gap-2 pl-11 sm:pl-0"
         submitClassName="h-8"
       >
         <Input

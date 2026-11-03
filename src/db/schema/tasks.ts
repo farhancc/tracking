@@ -8,7 +8,7 @@
  * goal engine; the Tasks module (M1) adds the remaining columns.
  */
 import { sql } from "drizzle-orm";
-import { boolean, check, date, foreignKey, index, integer, jsonb, numeric, pgTable, smallint, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, foreignKey, index, integer, jsonb, numeric, pgTable, smallint, text, time, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { TASK_STATUSES } from "../../lib/domain/goals";
 import { inList, ownerColumn, pk, timestamps } from "./_columns";
 import { users } from "./auth";
@@ -33,6 +33,15 @@ export const tasks = pgTable(
     isDeliverable: boolean("is_deliverable").notNull().default(false),
     carryCount: smallint("carry_count").notNull().default(0),
     carriedFromWeek: date("carried_from_week", { mode: "string" }),
+    /** The day the task is planned to be done (Today screen). */
+    scheduledOn: date("scheduled_on", { mode: "string" }),
+    /** Optional start time on that day, for scheduled activities. */
+    scheduledStart: time("scheduled_start"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    /** Today's mission: one of the day's three most important tasks. */
+    mitOn: date("mit_on", { mode: "string" }),
+    mitRank: smallint("mit_rank"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     sortOrder: integer("sort_order").notNull().default(0),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -52,6 +61,10 @@ export const tasks = pgTable(
       sql`(${t.estimatedMinutes} is null or ${t.estimatedMinutes} between 0 and 10000) and (${t.actualMinutes} is null or ${t.actualMinutes} between 0 and 10000)`,
     ),
     index("tasks_user_week_idx").on(t.userId, t.plannedWeek),
+    index("tasks_user_scheduled_idx").on(t.userId, t.scheduledOn),
+    uniqueIndex("tasks_one_mit_per_rank").on(t.userId, t.mitOn, t.mitRank).where(sql`${t.mitOn} is not null`),
+    check("tasks_mit_check", sql`(${t.mitOn} is null) = (${t.mitRank} is null) and (${t.mitRank} is null or ${t.mitRank} between 1 and 3)`),
+    check("tasks_finish_after_start_check", sql`${t.finishedAt} is null or ${t.startedAt} is null or ${t.finishedAt} >= ${t.startedAt}`),
     index("tasks_goal_idx").on(t.goalId),
     index("tasks_user_due_idx").on(t.userId, t.dueOn),
   ],
