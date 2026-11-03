@@ -64,6 +64,20 @@
       "when": 1793697696413,
       "tag": "0008_daily_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793698581153,
+      "tag": "0009_sales",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793698582218,
+      "tag": "0010_sales_rules",
+      "breakpoints": true
     }
   ]
 }
