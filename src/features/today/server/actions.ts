@@ -89,7 +89,7 @@ export async function saveReflectionAction(day: string, _prev: ActionState, fd: 
   }, "Reflection saved.");
 }
 
-export async function checkInHabitAction(day: string, habitId: string, status: "done" | "skipped" | null): Promise<void> {
+export async function checkInHabitAction(day: string, habitId: string, status: "done" | "skipped" | "rest" | null): Promise<void> {
   await simple((tx) => service.checkInHabit(tx, habitId, status, day));
 }
 

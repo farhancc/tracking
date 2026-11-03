@@ -1,40 +1,21 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Target } from "lucide-react";
+import { MainNav, NavBar } from "@/components/main-nav";
 import { SubmitButton } from "@/components/submit-button";
 
-const NAV = [
-  { href: "/today", label: "Today" },
-  { href: "/goals", label: "Goals" },
-  { href: "/week", label: "Week" },
-  { href: "/sales", label: "Sales" },
-  { href: "/communication", label: "Speak" },
-  { href: "/psychology", label: "Psychology" },
-  { href: "/products", label: "Products" },
-  { href: "/content", label: "Content" },
-  { href: "/knowledge", label: "Knowledge" },
-  { href: "/roadmap", label: "Roadmap" },
-  { href: "/goals/vision", label: "Vision" },
-];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:gap-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 sm:h-14 sm:flex-nowrap sm:gap-4 sm:py-0">
           <Link href="/today" className="flex shrink-0 items-center gap-2 font-semibold" aria-label="FiveYearOS home">
-            <Target className="size-5" aria-hidden /> <span className="hidden sm:inline">FiveYearOS</span>
+            <Target className="size-5" aria-hidden /> <span>FiveYearOS</span>
           </Link>
-          <nav aria-label="Main" className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm sm:gap-1">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="shrink-0 rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground sm:px-3"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <Suspense fallback={<NavBar active={null} />}>
+            <MainNav />
+          </Suspense>
           <form action="/api/auth/logout" method="post" className="ml-auto shrink-0">
             <SubmitButton variant="ghost" size="sm">
               Sign out

@@ -20,12 +20,14 @@ describe("daily progress", () => {
         { status: "todo", estimatedMinutes: 30, mitRank: null },
         { status: "cancelled", estimatedMinutes: 600, mitRank: null },
       ],
-      habits: [{ status: "done" }, { status: null }, { status: "skipped" }],
+      habits: [{ status: "done" }, { status: null }, { status: "rest" }],
     });
     // 0.5×0.5 + 0.3×0.75 + 0.2×0.5 = 0.575
     expect(p.pct).toBe(58);
     expect(p.work).toEqual({ plannedMinutes: 120, doneMinutes: 90 });
-    expect(p.habits).toEqual({ scheduled: 3, done: 1, skipped: 1 });
+    expect(p.habits).toEqual({ scheduled: 3, done: 1, rest: 1 });
+    // A skipped habit (not done, not excused) counts against the habit share.
+    expect(dailyProgress({ tasks: [], habits: [{ status: "done" }, { status: "skipped" }] }).pct).toBe(50);
   });
 
   it("does not let many small tasks outweigh one big one", () => {

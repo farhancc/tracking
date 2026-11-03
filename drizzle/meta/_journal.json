@@ -176,6 +176,20 @@
       "when": 1793704774262,
       "tag": "0024_knowledge_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793705418196,
+      "tag": "0025_habits",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793705419431,
+      "tag": "0026_habits_rules",
+      "breakpoints": true
     }
   ]
 }

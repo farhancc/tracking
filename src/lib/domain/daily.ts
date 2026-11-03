@@ -35,13 +35,13 @@ export function journeyDay(journey: { startDate: IsoDate; endDate: IsoDate }, to
 }
 
 export type ProgressTask = { status: "todo" | "doing" | "done" | "cancelled"; estimatedMinutes: number | null; mitRank: number | null };
-export type ProgressHabit = { status: "done" | "skipped" | null };
+export type ProgressHabit = { status: "done" | "skipped" | "rest" | null };
 
 export type DailyProgress = {
   pct: number | null;
   mits: { set: number; done: number };
   work: { plannedMinutes: number; doneMinutes: number };
-  habits: { scheduled: number; done: number; skipped: number };
+  habits: { scheduled: number; done: number; rest: number };
 };
 
 export function dailyProgress(input: { tasks: ProgressTask[]; habits: ProgressHabit[] }): DailyProgress {
@@ -51,7 +51,8 @@ export function dailyProgress(input: { tasks: ProgressTask[]; habits: ProgressHa
   const minutes = (t: ProgressTask) => t.estimatedMinutes || DEFAULT_TASK_MINUTES;
   const plannedMinutes = others.reduce((s, t) => s + minutes(t), 0);
   const doneMinutes = others.filter((t) => t.status === "done").reduce((s, t) => s + minutes(t), 0);
-  const habitsConsidered = input.habits.filter((h) => h.status !== "skipped");
+  // Rest is excused; a skipped habit counts as not done.
+  const habitsConsidered = input.habits.filter((h) => h.status !== "rest");
 
   const parts: { weight: number; value: number }[] = [];
   if (mits.length) parts.push({ weight: 0.5, value: mits.filter((t) => t.status === "done").length / mits.length });
@@ -68,7 +69,7 @@ export function dailyProgress(input: { tasks: ProgressTask[]; habits: ProgressHa
     habits: {
       scheduled: input.habits.length,
       done: input.habits.filter((h) => h.status === "done").length,
-      skipped: input.habits.filter((h) => h.status === "skipped").length,
+      rest: input.habits.filter((h) => h.status === "rest").length,
     },
   };
 }

@@ -39,6 +39,11 @@ export const habits = pgTable(
     pillarId: uuid("pillar_id"),
     /** Days of the week it is scheduled (0 = Sunday … 6 = Saturday). */
     scheduleDays: smallint("schedule_days").array().notNull().default(sql`'{0,1,2,3,4,5,6}'::smallint[]`),
+    /** "days": on the weekdays above · "weekly": `weeklyTarget` times a week, any days. */
+    scheduleKind: text("schedule_kind", { enum: ["days", "weekly"] }).notNull().default("days"),
+    weeklyTarget: smallint("weekly_target"),
+    /** Consistency is never judged before this date. */
+    startedOn: date("started_on", { mode: "string" }).notNull().default(sql`current_date`),
     sortOrder: integer("sort_order").notNull().default(0),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     ...timestamps(),
@@ -47,6 +52,8 @@ export const habits = pgTable(
     unique("habits_id_user_key").on(t.id, t.userId),
     foreignKey({ name: "habits_pillar_fk", columns: [t.pillarId, t.userId], foreignColumns: [pillars.id, pillars.userId] }).onDelete("restrict"),
     check("habits_name_check", sql`length(btrim(${t.name})) between 1 and 120`),
+    check("habits_schedule_kind_check", sql`${t.scheduleKind} in ('days', 'weekly')`),
+    check("habits_weekly_target_check", sql`(${t.scheduleKind} = 'weekly') = (${t.weeklyTarget} is not null) and (${t.weeklyTarget} is null or ${t.weeklyTarget} between 1 and 7)`),
     check(
       "habits_schedule_check",
       sql`cardinality(${t.scheduleDays}) between 1 and 7 and ${t.scheduleDays} <@ '{0,1,2,3,4,5,6}'::smallint[]`,
@@ -54,7 +61,7 @@ export const habits = pgTable(
   ],
 );
 
-export const HABIT_CHECKIN_STATUSES = ["done", "skipped"] as const;
+export const HABIT_CHECKIN_STATUSES = ["done", "skipped", "rest"] as const;
 
 export const habitCheckins = pgTable(
   "habit_checkins",
@@ -70,7 +77,20 @@ export const habitCheckins = pgTable(
   (t) => [
     unique("habit_checkins_habit_day_key").on(t.habitId, t.checkinOn),
     foreignKey({ name: "habit_checkins_habit_fk", columns: [t.habitId, t.userId], foreignColumns: [habits.id, habits.userId] }).onDelete("cascade"),
-    check("habit_checkins_status_check", sql`${t.status} in ('done', 'skipped')`),
+    check("habit_checkins_status_check", sql`${t.status} in ('done', 'skipped', 'rest')`),
     index("habit_checkins_user_day_idx").on(t.userId, t.checkinOn),
   ],
+);
+
+/** Days off for every habit (illness, travel, holidays). May be planned ahead. */
+export const restDays = pgTable(
+  "rest_days",
+  {
+    id: pk(),
+    userId: ownerColumn().references(() => users.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rest_days_user_day_key").on(t.userId, t.day)],
 );

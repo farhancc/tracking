@@ -315,14 +315,14 @@ export async function TodayView({ day }: { day?: string }) {
           {data.habits.length === 0 ? <p className="text-sm text-muted-foreground">No habits scheduled today.</p> : null}
           <ul className="grid gap-2 sm:grid-cols-2">
             {data.habits.map((hb) => (
-              <li key={hb.id} className="flex items-center gap-2">
+              <li key={hb.id} className="flex min-w-0 items-center gap-2">
                 <form action={checkInHabitAction.bind(null, d, hb.id, hb.status === "done" ? null : "done")} className="min-w-0 flex-1">
                   <SubmitButton
                     variant="outline"
                     className={cn(
                       "h-12 w-full justify-start gap-3 px-3 text-left",
                       hb.status === "done" && "border-success bg-success/10",
-                      hb.status === "skipped" && "text-muted-foreground",
+                      hb.status === "rest" && "text-muted-foreground",
                     )}
                     aria-pressed={hb.status === "done"}
                     aria-label={`${hb.name}: ${hb.status === "done" ? "done, tap to undo" : "tap when done"}`}
@@ -330,13 +330,14 @@ export async function TodayView({ day }: { day?: string }) {
                     <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border", hb.status === "done" && "border-success bg-success text-white")}>
                       {hb.status === "done" ? <Check className="size-4" aria-hidden /> : null}
                     </span>
-                    <span className="truncate">{hb.name}</span>
-                    {hb.status === "skipped" ? <Badge variant="outline">Rest</Badge> : null}
+                    <span className="min-w-0 truncate">{hb.name}</span>
+                    {hb.status === "rest" ? <Badge variant="outline">Rest</Badge> : null}
+                    {hb.scheduleKind === "weekly" ? <span className="ml-auto shrink-0 text-xs text-muted-foreground">{hb.weeklyTarget}× a week</span> : null}
                   </SubmitButton>
                 </form>
-                <form action={checkInHabitAction.bind(null, d, hb.id, hb.status === "skipped" ? null : "skipped")}>
-                  <SubmitButton variant="ghost" className="h-12 px-2 text-xs" aria-label={hb.status === "skipped" ? `Undo rest day for ${hb.name}` : `Rest day for ${hb.name}`}>
-                    {hb.status === "skipped" ? "Undo" : "Rest"}
+                <form action={checkInHabitAction.bind(null, d, hb.id, hb.status === "rest" ? null : "rest")}>
+                  <SubmitButton variant="ghost" className="h-12 px-2 text-xs" aria-label={hb.status === "rest" ? `Undo rest day for ${hb.name}` : `Rest day for ${hb.name}`}>
+                    {hb.status === "rest" ? "Undo" : "Rest"}
                   </SubmitButton>
                 </form>
               </li>

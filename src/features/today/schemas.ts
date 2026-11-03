@@ -43,6 +43,6 @@ export const habitCreateSchema = z.object({
 export type HabitCreateInput = z.infer<typeof habitCreateSchema>;
 
 export const checkinSchema = z.object({
-  status: z.enum(["done", "skipped"]).nullable(), // null clears the check-in
+  status: z.enum(["done", "skipped", "rest"]).nullable(), // null clears the check-in; rest is excused
   note: optionalText(500),
 });

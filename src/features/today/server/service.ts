@@ -92,7 +92,8 @@ export async function getToday(tx: Tx, dayArg?: string) {
     .orderBy(asc(tasks.priority), asc(tasks.dueOn), asc(tasks.createdAt));
 
   const habitRows = await tx.select().from(habits).where(isNull(habits.archivedAt)).orderBy(asc(habits.sortOrder), asc(habits.name));
-  const todaysHabits = habitRows.filter((h) => isScheduledOn(h.scheduleDays, day));
+  // Weekly-target habits can be done on any day, so they show every day.
+  const todaysHabits = habitRows.filter((h) => h.scheduleKind === "weekly" || isScheduledOn(h.scheduleDays, day));
   const checkins = todaysHabits.length
     ? await tx
         .select()
@@ -113,7 +114,7 @@ export async function getToday(tx: Tx, dayArg?: string) {
     return { rank, task: t ? withGoal(t) : null };
   });
 
-  const habitsToday = todaysHabits.map((h) => ({ ...h, status: (statusOf.get(h.id) ?? null) as "done" | "skipped" | null }));
+  const habitsToday = todaysHabits.map((h) => ({ ...h, status: (statusOf.get(h.id) ?? null) as "done" | "skipped" | "rest" | null }));
   const progress = dailyProgress({
     tasks: todayTasks.map((t) => ({ status: t.status, estimatedMinutes: t.estimatedMinutes, mitRank: t.mitOn === day ? t.mitRank : null })),
     habits: habitsToday.map((h) => ({ status: h.status })),
@@ -268,12 +269,13 @@ export async function saveReflection(tx: Tx, input: ReflectionInput, dayArg?: st
 }
 
 export async function createHabit(tx: Tx, input: HabitCreateInput) {
-  const [row] = await tx.insert(habits).values(input).returning();
+  const ws = await requireWorkspace(tx);
+  const [row] = await tx.insert(habits).values({ ...input, startedOn: ws.today }).returning();
   return row;
 }
 
 /** Set (or clear with null) a habit's check-in for a day. */
-export async function checkInHabit(tx: Tx, habitId: string, status: "done" | "skipped" | null, dayArg?: string, note: string | null = null) {
+export async function checkInHabit(tx: Tx, habitId: string, status: "done" | "skipped" | "rest" | null, dayArg?: string, note: string | null = null) {
   const { day } = await resolveDay(tx, dayArg);
   const [h] = await tx.select({ id: habits.id }).from(habits).where(eq(habits.id, habitId)).limit(1);
   if (!h) throw notFound("Habit");
