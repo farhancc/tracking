@@ -4,7 +4,7 @@ A personal operating system for a five-year journey toward becoming a successful
 
 FiveYearOS tracks four strategic pillars — **Sales Mastery**, **Product Entrepreneurship**, **Personal Branding** and **Financial Independence** — from a five-year vision down to today's calls, habits and journal entry, and turns that data into weekly, monthly, quarterly and annual reviews.
 
-> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) weekly planning ([docs/10](docs/10-weekly-planning.md)) the daily execution dashboard ([docs/11](docs/11-daily-dashboard.md)) the sales mastery tracker ([docs/12](docs/12-sales-mastery.md)) the communication mastery system ([docs/13](docs/13-communication-mastery.md)) and the sales psychology learning lab ([docs/14](docs/14-psychology-lab.md)) are implemented, with schema, REST API, UI and tests. Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
+> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) weekly planning ([docs/10](docs/10-weekly-planning.md)) the daily execution dashboard ([docs/11](docs/11-daily-dashboard.md)) the sales mastery tracker ([docs/12](docs/12-sales-mastery.md)) the communication mastery system ([docs/13](docs/13-communication-mastery.md)) the sales psychology learning lab ([docs/14](docs/14-psychology-lab.md)) and the software product portfolio ([docs/15](docs/15-product-portfolio.md)) are implemented, with schema, REST API, UI and tests. Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
 
 ## Planned stack
 
@@ -29,6 +29,7 @@ Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui · Neon serverless
 | 12 | [Sales mastery](docs/12-sales-mastery.md) | Activity log, funnel rates and trends, deals, targets per track and currency, learning journal |
 | 13 | [Communication mastery](docs/13-communication-mastery.md) | 14 skills, assessment-based proficiency, daily exercises, audio recordings |
 | 14 | [Psychology lab](docs/14-psychology-lab.md) | Concepts with evidence levels, spaced review, experiments, earned deep understanding |
+| 15 | [Product portfolio](docs/15-product-portfolio.md) | Products, stages, MRR/churn, revenue & expense reports, backlog, feedback, bugs, releases, invest/pause/discontinue |
 | ADR | [ADR-001: JWT auth and Neon Postgres](docs/adr/ADR-001-jwt-auth-and-neon.md) | Why the data and auth platform is Neon + self-issued JWTs instead of Supabase |
 
 ## Run it locally

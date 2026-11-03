@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { patchOf } from "@/lib/validation";
 import { isIsoDate } from "@/lib/domain/dates";
 import {
   ACTIVITY_KINDS,
@@ -23,7 +24,7 @@ export const trackCreateSchema = z.object({
   description: optionalText(1000),
   isDefault: z.boolean().default(false),
 });
-export const trackUpdateSchema = trackCreateSchema.partial().extend({ archived: z.boolean().optional() });
+export const trackUpdateSchema = patchOf(trackCreateSchema).extend({ archived: z.boolean().optional() });
 
 export const activityCreateSchema = z
   .object({
@@ -62,7 +63,7 @@ export const prospectCreateSchema = z.object({
   nextFollowUpOn: isoDate.nullish().transform((v) => v ?? null),
   notes: optionalText(5000),
 });
-export const prospectUpdateSchema = prospectCreateSchema.partial().extend({ archived: z.boolean().optional() });
+export const prospectUpdateSchema = patchOf(prospectCreateSchema).extend({ archived: z.boolean().optional() });
 export type ProspectCreateInput = z.infer<typeof prospectCreateSchema>;
 
 export const dealCreateSchema = z.object({
@@ -77,7 +78,7 @@ export const dealCreateSchema = z.object({
   lostReason: optionalText(1000),
   notes: optionalText(5000),
 });
-export const dealUpdateSchema = dealCreateSchema.partial();
+export const dealUpdateSchema = patchOf(dealCreateSchema);
 export type DealCreateInput = z.infer<typeof dealCreateSchema>;
 export type DealUpdateInput = z.infer<typeof dealUpdateSchema>;
 
@@ -108,7 +109,7 @@ export const journalCreateSchema = z.object({
   lesson: optionalText(5000),
   tags: z.array(z.string().trim().toLowerCase().min(1).max(40)).max(20).default([]),
 });
-export const journalUpdateSchema = journalCreateSchema.partial();
+export const journalUpdateSchema = patchOf(journalCreateSchema);
 export type JournalCreateInput = z.infer<typeof journalCreateSchema>;
 
 export const journalQuerySchema = z.object({

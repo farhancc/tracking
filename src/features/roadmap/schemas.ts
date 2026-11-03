@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { patchOf } from "@/lib/validation";
 import { isIsoDate } from "@/lib/domain/dates";
 import { MEASURE_UNITS } from "@/lib/domain/goals";
 import { DELIVERABLE_STATUSES, DEPENDENCY_STATUSES, KPI_DIRECTIONS, RISK_STATUSES } from "@/lib/domain/roadmap";
@@ -8,7 +9,7 @@ const optionalText = (max: number) => z.string().trim().max(max).nullish().trans
 const finite = z.number().refine(Number.isFinite, "Must be a number.");
 const hours = z.number().min(0).max(10000).nullish().transform((v) => v ?? null);
 const scale = z.number().int().min(1).max(5);
-const refinePatch = <T extends z.ZodObject>(s: T) => s.partial().refine((v) => Object.keys(v).length > 0, "Nothing to update.");
+const refinePatch = <S extends z.ZodRawShape>(s: z.ZodObject<S>) => patchOf(s).refine((v) => Object.keys(v).length > 0, "Nothing to update.");
 
 export const roadmapSettingsSchema = z.object({
   weeklyCapacityHours: z.number().min(0).max(120),

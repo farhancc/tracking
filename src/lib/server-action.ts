@@ -66,3 +66,17 @@ export function formCheckbox(fd: FormData, key: string): boolean {
   const v = fd.get(key);
   return v === "on" || v === "true" || v === "1";
 }
+
+/**
+ * All named fields as trimmed strings. Empty fields become `undefined` (create:
+ * let schema defaults apply) or `null` (update: clear the field). Zod coerces.
+ */
+export function formObject(fd: FormData, empty: "undefined" | "null" = "undefined"): Record<string, string | null | undefined> {
+  const out: Record<string, string | null | undefined> = {};
+  for (const [key, value] of fd.entries()) {
+    if (key.startsWith("$") || typeof value !== "string") continue;
+    const v = value.trim();
+    out[key] = v === "" ? (empty === "null" ? null : undefined) : v;
+  }
+  return out;
+}
