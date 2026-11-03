@@ -11,9 +11,11 @@ import { archiveProductAction, setStageAction } from "../server/actions";
 import { loadProduct } from "../server/queries";
 import { BuildTab, FeedbackTab, FinanceTab, OverviewTab } from "./product-tabs";
 import { RecommendationBadge } from "./recommendation-badge";
+import { ValidationTab } from "./validation-tab";
 
 const TABS = [
   ["overview", "Overview"],
+  ["validation", "Validation"],
   ["finance", "Revenue & expenses"],
   ["build", "Releases, backlog & bugs"],
   ["feedback", "Customer feedback"],
@@ -90,9 +92,18 @@ export async function ProductDetail({ params, searchParams }: { params: Promise<
                 </Select>
               </Field>
             </div>
-            <Field label="Why (optional)" htmlFor="s-note" hint="Moving to Launch records today as the launch date unless one is set.">
+            <Field label="Why" htmlFor="s-note" hint="Moving to Launch records today as the launch date unless one is set.">
               <Input id="s-note" name="statusNote" defaultValue={p.statusNote ?? ""} maxLength={2000} />
             </Field>
+            {PRODUCT_STAGES.indexOf(p.stage) < PRODUCT_STAGES.indexOf("mvp") && data.validation.demand.level < 3 ? (
+              <label className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-sm">
+                <input type="checkbox" name="acknowledgeUnvalidated" className="mt-1" />
+                <span>
+                  Demand evidence is at &ldquo;{data.validation.demand.levelLabel}&rdquo;. Moving to MVP or later means building before 3 customers committed to pay.
+                  Tick to do it anyway, and say why above.
+                </span>
+              </label>
+            ) : null}
           </ActionForm>
         </details>
       </header>
@@ -114,6 +125,7 @@ export async function ProductDetail({ params, searchParams }: { params: Promise<
       </nav>
 
       {tab === "overview" ? <OverviewTab data={data} /> : null}
+      {tab === "validation" ? <ValidationTab data={data} /> : null}
       {tab === "finance" ? <FinanceTab data={data} /> : null}
       {tab === "build" ? <BuildTab data={data} /> : null}
       {tab === "feedback" ? <FeedbackTab data={data} /> : null}

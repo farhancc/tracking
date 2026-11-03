@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFreshState } from "./use-fresh-state";
@@ -41,6 +41,16 @@ export function ActionForm({
     if (rawState?.ok && resetOnSuccess) ref.current?.reset();
   }, [rawState, resetOnSuccess]);
 
+  // React 19 resets uncontrolled fields after every resolved form action, even
+  // one that returned an error, wiping what the user typed. Submitting through
+  // a transition keeps the input; we reset ourselves only on success. `action`
+  // stays on the form so it still works before hydration / without JavaScript.
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
+    startTransition(() => formAction(fd));
+  };
+
   const fieldMessages = state?.fieldErrors
     ? Object.values(state.fieldErrors).flatMap((m) => m ?? [])
     : [];
@@ -66,7 +76,7 @@ export function ActionForm({
 
   if (inline) {
     return (
-      <form ref={ref} action={formAction} className="flex min-w-0 flex-col gap-2">
+      <form ref={ref} action={formAction} onSubmit={onSubmit} className="flex min-w-0 flex-col gap-2">
         <div className={cn("flex flex-row items-center gap-2", className)}>
           {children}
           {submit}
@@ -77,7 +87,7 @@ export function ActionForm({
   }
 
   return (
-    <form ref={ref} action={formAction} className={cn("flex flex-col gap-3", className)}>
+    <form ref={ref} action={formAction} onSubmit={onSubmit} className={cn("flex flex-col gap-3", className)}>
       {children}
       {error}
       {state?.ok && state.message ? (

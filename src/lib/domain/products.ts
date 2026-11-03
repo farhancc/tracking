@@ -239,7 +239,7 @@ export type AssessmentInput = {
   /** For wording only. */
   currency?: string;
   /** Validation evidence (Prompt 10); null when not tracked. */
-  validation?: { validatedMilestones: number; interviews: number; willingToPay: number } | null;
+  validation?: { validatedMilestones: number; interviews: number; willingToPay: number; level?: number } | null;
 };
 
 export type Assessment = {
@@ -295,6 +295,13 @@ export function assessProduct(input: AssessmentInput): Assessment {
       return out(
         "pause",
         [`${monthsInStage} months in ${PRODUCT_STAGE_LABELS[input.stage]} with no customer feedback or interviews in the last 90 days.`, "Talk to customers or pause it."],
+        "medium",
+      );
+    }
+    if (v?.level != null && v.level >= 3) {
+      return out(
+        "invest",
+        [`Not launched yet, but ${v.willingToPay} customer(s) committed or paid: demand is evidenced. Build what they committed to and deliver it.`, ...bugNote],
         "medium",
       );
     }

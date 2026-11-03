@@ -90,5 +90,11 @@ describe("assessProduct", () => {
     const active = assessProduct({ ...base, stage: "mvp", launchedOn: null, stageEnteredOn: "2026-02-01", feedbackLast90: 4 });
     expect(active.recommendation).toBe("validate");
     expect(assessProduct({ ...base, status: "paused" }).recommendation).toBe("paused");
+    const committed = assessProduct({ ...base, stage: "validation", launchedOn: null, validation: { validatedMilestones: 4, interviews: 12, willingToPay: 3, level: 3 } });
+    expect(committed.recommendation).toBe("invest");
+    expect(committed.reasons[0]).toMatch(/3 customer\(s\) committed/);
+    const noPay = assessProduct({ ...base, stage: "mvp", launchedOn: null, feedbackLast90: 2, validation: { validatedMilestones: 2, interviews: 10, willingToPay: 0, level: 2 } });
+    expect(noPay.recommendation).toBe("validate");
+    expect(noPay.reasons.join(" ")).toMatch(/No one has said they would pay yet/);
   });
 });

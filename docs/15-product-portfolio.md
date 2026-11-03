@@ -87,7 +87,7 @@ Products that need a decision are listed first. The recommendation comes from fi
 
 The recommendation is a prompt for a decision. The app never pauses or discontinues a product by itself: that is a status change you make.
 
-Prompt 10 (validation tracker) feeds validation evidence into the "not launched" rules through `AssessmentInput.validation`.
+For products that haven't launched, demand evidence from the validation tracker ([docs/16](16-product-validation.md)) feeds these rules: level 3+ (customers committed) gives **Invest more**. Moving from a pre-MVP stage to MVP or later without that evidence needs an explicit, reasoned acknowledgement.
 
 ## 5. REST API (`/api/v1/products`)
 

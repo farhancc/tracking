@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import type { Tx } from "@/db/client";
-import { formNullable, formObject, formText, runAction, runSimpleAction, type ActionState } from "@/lib/server-action";
-import { productCreateSchema, productUpdateSchema, type Collection } from "../schemas";
+import type { ValidationStep } from "@/lib/domain/product-validation";
+import { formCheckbox, formNullable, formObject, formText, runAction, runSimpleAction, type ActionState } from "@/lib/server-action";
+import { productCreateSchema, productUpdateSchema, stepUpdateSchema, type Collection } from "../schemas";
 import * as service from "./service";
+import * as validation from "./validation";
 
 const run = (fn: (tx: Tx) => Promise<unknown>, success?: string) => runAction(fn, { success });
 
@@ -42,7 +44,12 @@ export async function setStageAction(id: string, _prev: ActionState, fd: FormDat
     await service.updateProduct(
       tx,
       id,
-      productUpdateSchema.parse({ stage: formText(fd, "stage"), status: formText(fd, "status"), statusNote: formNullable(fd, "statusNote") }),
+      productUpdateSchema.parse({
+        stage: formText(fd, "stage"),
+        status: formText(fd, "status"),
+        statusNote: formNullable(fd, "statusNote"),
+        acknowledgeUnvalidated: formCheckbox(fd, "acknowledgeUnvalidated"),
+      }),
     );
   }, "Updated.");
 }
@@ -67,4 +74,12 @@ export async function setItemFieldAction(productId: string, collection: Collecti
 
 export async function deleteItemAction(productId: string, collection: Collection, itemId: string): Promise<void> {
   await runSimpleAction((tx) => service.deleteItem(tx, productId, collection, itemId));
+}
+
+export async function updateStepAction(productId: string, step: ValidationStep, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  return run(async (tx) => {
+    const raw = formObject(fd, "null");
+    if (raw.successCriteria === null) delete raw.successCriteria;
+    await validation.updateStep(tx, productId, step, stepUpdateSchema.parse(raw));
+  }, "Saved.");
 }

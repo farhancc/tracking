@@ -9,13 +9,16 @@ import {
   goals,
   productBugs,
   productFeatures,
+  productCompetitors,
   productFeedback,
+  productInterviews,
   productMetrics,
   productMilestones,
   productReleases,
   products,
   productStageEvents,
   productTransactions,
+  productValidationEvidence,
 } from "@/db/schema";
 import { requireWorkspace } from "@/features/goals/server/service";
 import { addDays, addMonths, type IsoDate } from "@/lib/domain/dates";
@@ -32,11 +35,16 @@ import {
   type TransactionCategory,
   type TransactionInput as LedgerEntry,
 } from "@/lib/domain/products";
+import { needsValidationGate, type DemandEvidence } from "@/lib/domain/product-validation";
 import { AppError, notFound } from "@/lib/errors";
 import { patchOf } from "@/lib/validation";
+import { demandFor, ensureSteps } from "./validation";
 import {
   bugSchema,
   bugUpdateSchema,
+  competitorSchema,
+  evidenceSchema,
+  interviewSchema,
   featureSchema,
   featureUpdateSchema,
   feedbackSchema,
@@ -77,8 +85,23 @@ export async function createProduct(tx: Tx, input: ProductCreateInput) {
 export async function updateProduct(tx: Tx, id: string, patch: ProductUpdateInput) {
   const ws = await requireWorkspace(tx);
   const current = await findProduct(tx, id);
-  const { archived, ...rest } = patch;
+  const { archived, acknowledgeUnvalidated, ...rest } = patch;
   const stage = rest.stage ?? current.stage;
+  if (rest.stage && rest.stage !== current.stage) {
+    const demand = (await demandFor(tx, [id])).get(id)!;
+    if (needsValidationGate(current.stage, rest.stage, demand.level)) {
+      if (!acknowledgeUnvalidated) {
+        throw new AppError(
+          409,
+          "validation_required",
+          `Demand evidence is at "${demand.levelLabel}". Moving to ${rest.stage === "mvp" ? "MVP" : rest.stage} before at least 3 customers commit to pay risks building something nobody wants. Get commitments first, or confirm and give a reason.`,
+        );
+      }
+      if (!(rest.statusNote ?? "").trim()) {
+        throw new AppError(422, "validation_failed", "Say why you are building without demand evidence.", { statusNote: ["Give a reason."] });
+      }
+    }
+  }
   // Moving into a launched stage now means it launched today unless a date is given.
   if (isLaunchedStage(stage) && !(rest.launchedOn ?? current.launchedOn)) rest.launchedOn = ws.today;
   if (rest.launchedOn === null && isLaunchedStage(stage)) {
@@ -148,7 +171,7 @@ export function recentWindow(today: IsoDate) {
   return { from: addMonths(thisMonth, -3), to: addDays(thisMonth, -1) };
 }
 
-function summarize(p: ProductRow, s: Signals, today: IsoDate) {
+function summarize(p: ProductRow, s: Signals, today: IsoDate, demand?: DemandEvidence) {
   const win = recentWindow(today);
   const recent = s.ledger.filter((t) => t.occurredOn >= win.from && t.occurredOn <= win.to);
   const lastMonth = s.ledger.filter((t) => t.occurredOn >= addMonths(monthOf(today), -1) && t.occurredOn < monthOf(today));
@@ -165,7 +188,7 @@ function summarize(p: ProductRow, s: Signals, today: IsoDate) {
     feedbackLast90: s.feedbackLast90,
     openCriticalBugs: s.openCriticalBugs,
     currency: p.currency,
-    validation: null,
+    validation: demand ? { validatedMilestones: demand.validatedSteps, interviews: demand.interviews, willingToPay: demand.committed + demand.presales.count, level: demand.level } : null,
   });
   return {
     lifetime: sumFinance(s.ledger),
@@ -175,6 +198,7 @@ function summarize(p: ProductRow, s: Signals, today: IsoDate) {
     latestMetrics: latest ? { ...latest, churnRate: churnRate(latest) } : null,
     feedbackLast90: s.feedbackLast90,
     openCriticalBugs: s.openCriticalBugs,
+    demand: demand ?? null,
     assessment,
   };
 }
@@ -186,8 +210,10 @@ export async function getPortfolio(tx: Tx, opts: { includeArchived?: boolean } =
     .from(products)
     .where(opts.includeArchived ? undefined : isNull(products.archivedAt))
     .orderBy(asc(products.name));
-  const signals = await loadSignals(tx, rows.map((r) => r.id), ws.today);
-  const items = rows.map((p) => ({ product: p, ...summarize(p, signals.get(p.id)!, ws.today) }));
+  const ids = rows.map((r) => r.id);
+  const signals = await loadSignals(tx, ids, ws.today);
+  const demand = await demandFor(tx, ids);
+  const items = rows.map((p) => ({ product: p, ...summarize(p, signals.get(p.id)!, ws.today, demand.get(p.id)) }));
   // Money is never summed across currencies.
   const totals = new Map<string, { currency: string; mrr: number; lifetimeProfit: number; recentProfit: number; products: number; activeCustomers: number }>();
   for (const i of items) {
@@ -207,7 +233,7 @@ export async function getProduct(tx: Tx, id: string) {
   const ws = await requireWorkspace(tx);
   const p = await findProduct(tx, id);
   const signals = (await loadSignals(tx, [p.id], ws.today)).get(p.id)!;
-  const summary = summarize(p, signals, ws.today);
+  const summary = summarize(p, signals, ws.today, (await demandFor(tx, [p.id])).get(p.id));
   const goal = p.goalId ? (await tx.select({ id: goals.id, title: goals.title }).from(goals).where(eq(goals.id, p.goalId)).limit(1))[0] ?? null : null;
   const stageEvents = await tx.select().from(productStageEvents).where(eq(productStageEvents.productId, id)).orderBy(asc(productStageEvents.createdAt));
   const metrics = await tx.select().from(productMetrics).where(eq(productMetrics.productId, id)).orderBy(desc(productMetrics.month));
@@ -292,6 +318,11 @@ async function normalize(tx: Tx, collection: Collection, productId: string, merg
         if (!f) throw new AppError(422, "validation_failed", "That feature belongs to another product.", { featureId: ["Pick a feature of this product."] });
       }
       return { ...merged, receivedOn: merged.receivedOn ?? today };
+    case "interviews":
+      return { ...merged, interviewedOn: merged.interviewedOn ?? today };
+    case "evidence":
+      await ensureSteps(tx, productId);
+      return { ...merged, observedOn: merged.observedOn ?? today };
     default:
       return merged;
   }
@@ -305,6 +336,9 @@ const TABLES = {
   features: productFeatures,
   feedback: productFeedback,
   bugs: productBugs,
+  interviews: productInterviews,
+  competitors: productCompetitors,
+  evidence: productValidationEvidence,
 } as const;
 
 const CREATE = {
@@ -315,6 +349,9 @@ const CREATE = {
   features: featureSchema,
   feedback: feedbackSchema,
   bugs: bugSchema,
+  interviews: interviewSchema,
+  competitors: competitorSchema,
+  evidence: evidenceSchema,
 } as const;
 
 const UPDATE = {
@@ -325,6 +362,9 @@ const UPDATE = {
   features: featureUpdateSchema,
   feedback: feedbackUpdateSchema,
   bugs: bugUpdateSchema,
+  interviews: patchOf(interviewSchema),
+  competitors: patchOf(competitorSchema),
+  evidence: patchOf(evidenceSchema),
 } as const;
 
 export async function createItem(tx: Tx, productId: string, collection: Collection, body: unknown) {

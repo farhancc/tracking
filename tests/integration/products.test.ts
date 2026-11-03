@@ -34,7 +34,10 @@ describe("product portfolio", () => {
     expect(p).toMatchObject({ stage: "idea", status: "active", currency: "USD", stageEnteredOn: p.startedOn, launchedOn: null });
     await expect(h.as(o.userId, (tx) => createProduct(tx, product({ startedOn: addDays(today, 1) })))).rejects.toBeTruthy();
 
-    const launched = await h.as(o.userId, (tx) => updateProduct(tx, p.id, { stage: "launch" }));
+    // Skipping validation needs an explicit, reasoned acknowledgement.
+    await expect(h.as(o.userId, (tx) => updateProduct(tx, p.id, { stage: "launch" }))).rejects.toMatchObject({ code: "validation_required", status: 409 });
+    await expect(h.as(o.userId, (tx) => updateProduct(tx, p.id, { stage: "launch", acknowledgeUnvalidated: true }))).rejects.toMatchObject({ code: "validation_failed" });
+    const launched = await h.as(o.userId, (tx) => updateProduct(tx, p.id, { stage: "launch", acknowledgeUnvalidated: true, statusNote: "Already selling it offline" }));
     expect(launched).toMatchObject({ stage: "launch", launchedOn: today, stageEnteredOn: today });
     await expect(h.as(o.userId, (tx) => updateProduct(tx, p.id, { launchedOn: null }))).rejects.toMatchObject({ code: "validation_failed" });
     const detail = await h.as(o.userId, (tx) => getProduct(tx, p.id));

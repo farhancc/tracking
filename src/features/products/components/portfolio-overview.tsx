@@ -52,7 +52,7 @@ export async function PortfolioOverview() {
           </h2>
           {items.length === 0 ? <p className="text-sm text-muted-foreground">No products yet. Add your first idea, even before writing code.</p> : null}
           <ul className="flex flex-col gap-3">
-            {items.map(({ product: p, assessment: a, latestMetrics: m, recent3Months, lifetime }) => (
+            {items.map(({ product: p, assessment: a, latestMetrics: m, recent3Months, lifetime, demand }) => (
               <li key={p.id}>
                 <Link href={`/products/${p.id}`} className="flex flex-col gap-3 rounded-xl border bg-card p-4 hover:bg-accent">
                   <div className="flex flex-wrap items-center gap-2">
@@ -82,6 +82,12 @@ export async function PortfolioOverview() {
                       <dd className={`tabular-nums ${lifetime.profit < 0 ? "text-destructive" : ""}`}>{formatMoney(lifetime.profit, p.currency)}</dd>
                     </div>
                   </dl>
+                  {demand && !["launch", "growth", "optimization"].includes(p.stage) ? (
+                    <p className="text-sm">
+                      Demand evidence: <span className="font-medium">level {demand.level}/5, {demand.levelLabel}</span>
+                      <span className="text-muted-foreground"> · {demand.interviews} interviews · {demand.committed + demand.presales.count} committed</span>
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
                     {a.reasons.join(" ")} <span className="whitespace-nowrap">Confidence: {a.confidence}.</span>
                   </p>
