@@ -12,3 +12,4 @@ export * from "./product-validation";
 export * from "./content";
 export * from "./knowledge";
 export * from "./finance";
+export * from "./review";

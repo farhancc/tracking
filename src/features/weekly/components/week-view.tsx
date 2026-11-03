@@ -394,7 +394,10 @@ export async function WeekView({ weekStart }: { weekStart?: string }) {
                   : "Completing the review freezes this week's scorecard for your history."}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
+              <Link href={`/review/${ws}`} className="text-sm font-medium underline-offset-2 hover:underline">
+                Open the full weekly review: report by pillar, the twelve questions, next week&rsquo;s suggestions →
+              </Link>
               <ActionForm action={reviewWeekAction.bind(null, ws)} submitLabel={plan?.reviewedAt ? "Update review" : "Complete review"} resetOnSuccess={false}>
                 <Field label="Wins" htmlFor="wins">
                   <Textarea id="wins" name="wins" rows={2} defaultValue={plan?.wins ?? ""} />
