@@ -48,6 +48,7 @@ export const tasks = pgTable(
     ...timestamps(),
   },
   (t) => [
+    unique("tasks_id_user_key").on(t.id, t.userId),
     foreignKey({
       name: "tasks_goal_fk",
       columns: [t.goalId, t.userId],

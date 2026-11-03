@@ -186,6 +186,7 @@ export const salesJournalEntries = pgTable(
     ...timestamps(),
   },
   (t) => [
+    unique("sales_journal_id_user_key").on(t.id, t.userId),
     foreignKey({ name: "sales_journal_track_fk", columns: [t.trackId, t.userId], foreignColumns: [salesTracks.id, salesTracks.userId] }).onDelete("restrict"),
     foreignKey({ name: "sales_journal_prospect_fk", columns: [t.prospectId, t.userId], foreignColumns: [prospects.id, prospects.userId] }).onDelete("restrict"),
     check("sales_journal_kind_check", sql`${t.kind} in (${inList(JOURNAL_KINDS)})`),

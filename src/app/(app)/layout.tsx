@@ -11,6 +11,7 @@ const NAV = [
   { href: "/psychology", label: "Psychology" },
   { href: "/products", label: "Products" },
   { href: "/content", label: "Content" },
+  { href: "/knowledge", label: "Knowledge" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/goals/vision", label: "Vision" },
 ];

@@ -162,6 +162,20 @@
       "when": 1793703988260,
       "tag": "0022_content_analytics_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793704773010,
+      "tag": "0023_knowledge",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793704774262,
+      "tag": "0024_knowledge_rules",
+      "breakpoints": true
     }
   ]
 }
