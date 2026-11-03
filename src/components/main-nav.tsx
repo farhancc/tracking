@@ -29,6 +29,7 @@ export const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: "/products", label: "Products" },
       { href: "/content", label: "Content" },
+      { href: "/finance", label: "Finance" },
     ],
   },
   {
