@@ -254,7 +254,9 @@ describe("hierarchy", () => {
     const annual = await h.as(o.userId, (tx) => createGoal(tx, child(o, vision.id, "annual", "2027-01-01", "2027-12-31")));
     const quarter = await h.as(o.userId, (tx) => createGoal(tx, child(o, annual.id, "quarterly", "2027-01-01", "2027-03-31")));
     const month = await h.as(o.userId, (tx) => createGoal(tx, child(o, quarter.id, "monthly", "2027-01-01", "2027-01-31")));
-    const week = await h.as(o.userId, (tx) => createGoal(tx, child(o, month.id, "weekly", "2027-01-04", "2027-01-10")));
+    const week = await h.as(o.userId, (tx) =>
+      createGoal(tx, child(o, month.id, "weekly", "2027-01-04", "2027-01-10", { focusArea: "sales" })),
+    );
     await h.as(o.userId, (tx) =>
       createGoal(tx, child(o, week.id, "daily", "2027-01-04", "2027-01-04", { title: "Make 50 dials", successMetric: "Dials" })),
     );

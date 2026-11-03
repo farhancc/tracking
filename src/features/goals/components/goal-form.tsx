@@ -26,6 +26,7 @@ import {
   type GoalCategory,
   type GoalLevel,
 } from "@/lib/domain/goals";
+import { FOCUS_AREA_LABELS, FOCUS_AREAS, WEEKLY_PARENT_LEVELS } from "@/lib/domain/weekly";
 import type { ActionState } from "../server/actions";
 
 export type GoalOption = {
@@ -48,6 +49,7 @@ export type GoalFormValues = {
   category: string;
   parentId: string;
   isKeyResult: boolean;
+  focusArea: string;
   startDate: string;
   targetDate: string;
   priority: number;
@@ -119,7 +121,15 @@ export function GoalForm({
 
   const excluded = useMemo(() => (goalId ? descendantsOf(goalId, options) : new Set<string>()), [goalId, options]);
   const parentChoices = useMemo(
-    () => options.filter((o) => !excluded.has(o.id) && !(isKeyResult && o.isKeyResult) && isValidParentLevel(o.level, level, isKeyResult)),
+    () =>
+      options.filter(
+        (o) =>
+          !excluded.has(o.id) &&
+          !(isKeyResult && o.isKeyResult) &&
+          isValidParentLevel(o.level, level, isKeyResult) &&
+          // Weekly goals must serve a monthly, quarterly or annual objective.
+          (level !== "weekly" || isKeyResult || (WEEKLY_PARENT_LEVELS as readonly string[]).includes(o.level)),
+      ),
     [options, excluded, level, isKeyResult],
   );
   const measuredByKeyResults = measureMode === "key_results" && !isKeyResult;
@@ -258,6 +268,19 @@ export function GoalForm({
               ))}
             </Select>
           </Field>
+          {level === "weekly" && !isKeyResult ? (
+            <Field label="Weekly focus area" htmlFor="focusArea" errors={errors.focusArea}>
+              <Select id="focusArea" name="focusArea" defaultValue={initial.focusArea || "sales"} required>
+                {FOCUS_AREAS.map((a) => (
+                  <option key={a} value={a}>
+                    {FOCUS_AREA_LABELS[a]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : (
+            <input type="hidden" name="focusArea" value="" />
+          )}
           <Field label="Strategic pillar" htmlFor="pillarId" errors={errors.pillarId}>
             <Select
               id="pillarId"

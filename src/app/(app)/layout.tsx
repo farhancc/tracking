@@ -4,6 +4,7 @@ import { SubmitButton } from "@/components/submit-button";
 
 const NAV = [
   { href: "/goals", label: "Goals" },
+  { href: "/week", label: "Week" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/goals/vision", label: "Vision" },
 ];

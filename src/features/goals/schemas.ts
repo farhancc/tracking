@@ -14,6 +14,7 @@ import {
   MEASUREMENT_MODES,
   TASK_STATUSES,
 } from "@/lib/domain/goals";
+import { FOCUS_AREAS, TASK_PRIORITIES } from "@/lib/domain/weekly";
 
 const isoDate = z.string().refine(isIsoDate, "Use a valid date (YYYY-MM-DD).");
 const optionalText = (max: number) => z.string().trim().max(max).nullish().transform((v) => (v ? v : null));
@@ -32,6 +33,7 @@ const goalFields = {
   category: z.enum(GOAL_CATEGORIES).nullish().transform((v) => v ?? null),
   parentId: z.uuid().nullish().transform((v) => v ?? null),
   isKeyResult: z.boolean(),
+  focusArea: z.enum(FOCUS_AREAS).nullish().transform((v) => v ?? null),
   startDate: isoDate,
   targetDate: isoDate,
   priority: z.number().int().min(1).max(4),
@@ -50,6 +52,7 @@ const goalFields = {
 type GoalShape = {
   level?: (typeof GOAL_LEVELS)[number];
   isKeyResult?: boolean;
+  focusArea?: string | null;
   category?: string | null;
   parentId?: string | null;
   startDate?: string;
@@ -68,6 +71,12 @@ function refineGoal(goal: GoalShape, ctx: z.RefinementCtx) {
   if (goal.isKeyResult) {
     if (goal.parentId === null) ctx.addIssue({ code: "custom", path: ["parentId"], message: "A key result needs the objective it measures as its parent." });
     if (goal.measurementMode === "key_results") ctx.addIssue({ code: "custom", path: ["measurementMode"], message: "A key result is measured directly, not by other key results." });
+  }
+  if (goal.level === "weekly" && !goal.isKeyResult) {
+    if (goal.focusArea === null) ctx.addIssue({ code: "custom", path: ["focusArea"], message: "Choose the weekly focus area." });
+    if (goal.parentId === null) {
+      ctx.addIssue({ code: "custom", path: ["parentId"], message: "Link the weekly goal to a monthly, quarterly or annual objective." });
+    }
   }
   if (goal.level === "five_year") {
     if (goal.parentId) ctx.addIssue({ code: "custom", path: ["parentId"], message: "Five-year goals sit at the top and have no parent." });
@@ -172,10 +181,17 @@ export const journeyCreateSchema = z.object({
 });
 export type JourneyCreateInput = z.infer<typeof journeyCreateSchema>;
 
+const minutes = z.number().int().min(0).max(10000).nullish().transform((v) => v ?? null);
+const taskPriority = z.number().int().refine((v) => (TASK_PRIORITIES as readonly number[]).includes(v), "Priority is 1–4.");
+
 export const taskCreateSchema = z.object({
   title: z.string().trim().min(1, "Give the task a title.").max(300),
   goalId: z.uuid().nullish().transform((v) => v ?? null),
   dueOn: isoDate.nullish().transform((v) => v ?? null),
+  plannedWeek: isoDate.nullish().transform((v) => v ?? null),
+  priority: taskPriority.default(3),
+  estimatedMinutes: minutes,
+  isDeliverable: z.boolean().default(false),
   notes: optionalText(5000),
 });
 export type TaskCreateInput = z.infer<typeof taskCreateSchema>;
@@ -185,6 +201,12 @@ export const taskUpdateSchema = z
     title: z.string().trim().min(1).max(300),
     status: z.enum(TASK_STATUSES),
     dueOn: isoDate.nullable(),
+    plannedWeek: isoDate.nullable(),
+    priority: taskPriority,
+    estimatedMinutes: minutes,
+    actualMinutes: minutes,
+    isDeliverable: z.boolean(),
+    goalId: z.uuid().nullable(),
     notes: optionalText(5000),
   })
   .partial()

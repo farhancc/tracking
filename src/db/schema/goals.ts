@@ -39,6 +39,7 @@ import {
   MEASUREMENT_MODES,
   MEASUREMENT_SOURCES,
 } from "../../lib/domain/goals";
+import { FOCUS_AREAS } from "../../lib/domain/weekly";
 import { inList, ownerColumn, pk, timestamps } from "./_columns";
 import { users } from "./auth";
 import { journeys, pillars } from "./core";
@@ -57,6 +58,8 @@ export const goals = pgTable(
     pillarId: uuid("pillar_id").notNull(),
     /** A key result measures its parent objective (same level allowed). */
     isKeyResult: boolean("is_key_result").notNull().default(false),
+    /** Weekly planning area (sales, product, marketing, content, learning, personal). Required for weekly goals. */
+    focusArea: text("focus_area", { enum: FOCUS_AREAS }),
 
     title: text("title").notNull(),
     description: text("description"),
@@ -145,6 +148,8 @@ export const goals = pgTable(
       sql`not ${t.isKeyResult} or (${t.parentId} is not null and ${t.measurementMode} <> 'key_results')`,
     ),
     check("goals_estimated_hours_check", sql`${t.estimatedHours} is null or ${t.estimatedHours} >= 0`),
+    check("goals_focus_area_check", sql`${t.focusArea} is null or ${t.focusArea} in (${inList(FOCUS_AREAS)})`),
+    check("goals_weekly_focus_area_check", sql`${t.level} <> 'weekly' or ${t.isKeyResult} or ${t.focusArea} is not null`),
 
     index("goals_user_journey_level_idx").on(t.userId, t.journeyId, t.level),
     index("goals_parent_idx").on(t.parentId),

@@ -39,6 +39,7 @@ function goalFromForm(fd: FormData) {
     category: nullableText(fd, "category"),
     parentId: nullableText(fd, "parentId"),
     isKeyResult: formCheckbox(fd, "isKeyResult"),
+    focusArea: nullableText(fd, "focusArea"),
     startDate: text(fd, "startDate"),
     targetDate: text(fd, "targetDate"),
     priority: num(fd, "priority"),
