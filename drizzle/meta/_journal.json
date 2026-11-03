@@ -134,6 +134,20 @@
       "when": 1793702121275,
       "tag": "0018_product_validation_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793703227111,
+      "tag": "0019_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793703228475,
+      "tag": "0020_content_rules",
+      "breakpoints": true
     }
   ]
 }
