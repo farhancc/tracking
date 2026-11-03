@@ -14,3 +14,4 @@ export * from "./knowledge";
 export * from "./finance";
 export * from "./review";
 export * from "./advisor";
+export * from "./notifications";

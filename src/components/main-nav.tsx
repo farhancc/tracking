@@ -82,7 +82,7 @@ export function NavBar({ active }: { active: string | null }) {
     cn("shrink-0 rounded-md px-2 py-1.5 sm:px-3", active === href ? "bg-accent font-medium text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground");
 
   return (
-    <nav ref={ref} aria-label="Main" className="order-last flex w-full min-w-0 items-center justify-between gap-0.5 text-sm sm:order-none sm:w-auto sm:justify-start sm:gap-1">
+    <nav ref={ref} aria-label="Main" className="flex min-w-0 items-center gap-1 text-sm">
       {PRIMARY.map((i) => (
         <Link key={i.href} href={i.href} aria-current={active === i.href ? "page" : undefined} className={linkClass(i.href)}>
           {i.label}

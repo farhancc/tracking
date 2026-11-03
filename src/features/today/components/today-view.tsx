@@ -380,7 +380,7 @@ export async function TodayView({ day }: { day?: string }) {
       </Card>
 
       {/* Reflection */}
-      <details open={reflectionOpen} className="group rounded-xl border bg-card p-4">
+      <details id="reflection" open={reflectionOpen} className="group scroll-mt-20 rounded-xl border bg-card p-4">
         <summary className="flex cursor-pointer list-none items-center justify-between font-semibold [&::-webkit-details-marker]:hidden">
           Daily reflection
           <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />

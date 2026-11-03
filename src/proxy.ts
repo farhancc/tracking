@@ -8,7 +8,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCESS_COOKIE, bearerToken, verifyAccessToken } from "@/lib/auth/jwt";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/", "/api/dev/login"];
+/** /api/cron/ checks its own secret; the PWA files must load before sign-in and offline. */
+const PUBLIC_PATHS = ["/login", "/api/auth/", "/api/dev/login", "/api/cron/", "/sw.js", "/manifest.webmanifest", "/offline.html"];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

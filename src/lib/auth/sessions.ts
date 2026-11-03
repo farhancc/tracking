@@ -71,3 +71,10 @@ export async function findOrCreateUserByEmail(email: string): Promise<string> {
   const [created] = await db.insert(users).values({ email: normalized }).returning({ id: users.id });
   return created.id;
 }
+
+/** All user ids, for scheduled jobs that then act as each user (with RLS). */
+export async function listUserIds(): Promise<string[]> {
+  const db = getAuthDatabase();
+  const rows = await db.select({ id: users.id }).from(users);
+  return rows.map((r) => r.id);
+}

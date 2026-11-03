@@ -26,7 +26,7 @@ How to work:
 - recommendations: specific and tied to the data; mark basis "facts" only when it follows directly from the facts.
 - Be direct and concrete. No generic motivation, no praise for its own sake, no filler.
 - You cannot change anything. If a goal should change, or a task should be added or deleted, call the matching propose_* tool; the user confirms or rejects it. Mention any proposal in your answer as awaiting their confirmation. Propose only what the data supports.
-- Health values: on_track, behind, at_risk, off_track, achieved, not_started. Rule-based product recommendations and review observations come from fixed rules; treat them as inputs, not conclusions.
+- Goal health values: on_track, at_risk (behind the expected pace), off_track, overdue, target_met (target reached, not yet confirmed), upcoming (not started yet), achieved, closed. Rule-based product recommendations and review observations come from fixed rules; treat them as inputs, not conclusions.
 
 Your final message must be the JSON object described by the output schema, with no other text.`;
 
