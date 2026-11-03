@@ -99,6 +99,8 @@ Domain-specific diagrams appear with each section below.
 
 ### 4.2 Strategy: vision, goals, key results
 
+> **Implemented (and refined) by the goal engine. See [08-goal-engine.md](08-goal-engine.md) and `src/db/schema/goals.ts`.** Each goal now carries its own outcome (success metric, baseline, target, derived current value and completion), with `goal_measurements` as the only source of progress. The hierarchy adds `weekly` and `daily` levels, and `goal_dependencies` / `goal_links` model dependencies and related goals. Key results and milestones below remain an option for the metrics milestone.
+
 | Table | Columns (beyond **std**) | Notes |
 |---|---|---|
 | `visions` | `journey_id`, `version int`, `title`, `statement text` (markdown), `pillar_statements jsonb` (`{pillar_key: text}`), `is_current bool`, `effective_from date` | Edit = insert new version and flip `is_current`. Partial unique index: one current per journey. |

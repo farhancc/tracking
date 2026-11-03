@@ -62,9 +62,9 @@ flowchart TB
 | | |
 |---|---|
 | **Purpose** | Turn the five-year vision into a cascade of time-boxed, measurable goals |
-| **Entities** | `visions` (versioned), `goals` (self-referencing hierarchy), `key_results`, `milestones`, `journey_events` |
+| **Entities** | `visions` (versioned), `goals` (self-referencing hierarchy), `goal_measurements`, `goal_dependencies`, `goal_links`, `journey_events`. **Implemented, see [08-goal-engine.md](08-goal-engine.md).** |
 | **Screens** | Vision, Goal tree, Goal detail (KRs, milestones, linked tasks/projects, progress chart), Journey timeline |
-| **Key behaviour** | Levels: `five_year → year → quarter → month`. KR progress = `(current − baseline) / (target − baseline)`, clamped to 0–1 for scoring. This works for "down" goals such as debt. *Expected progress* = elapsed share of the period. Health is suggested from the gap between the two. |
+| **Key behaviour** | Levels: `five_year → annual → quarterly → monthly → weekly → daily`. Each goal carries its own success metric, baseline and target. Progress = `(current − baseline) / (target − baseline)`, clamped to 0–100%, which also works for "down" goals such as debt. The current value comes only from logged outcome measurements, so tasks and sub-goals never complete a goal. *Expected progress* = elapsed share of the period. Health is suggested from the gap between the two. |
 
 ## 2.3 Metrics Engine
 

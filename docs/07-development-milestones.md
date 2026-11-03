@@ -52,6 +52,8 @@ gantt
 | Quick capture (online): task, metric value, journal note, win | Metric logged in ≤ 3 taps |
 | Morning plan (J2) and evening shutdown (J5) | Used for 7 consecutive days by the owner |
 
+> **Progress (2026-11-03):** the five-year strategic goal engine from M2 has been delivered early, together with the M0 pieces it needs: Next.js app, Neon/Postgres schema and roles, RLS, access-token verification and session checks. See [08-goal-engine.md](08-goal-engine.md). The M0 login flow (password, TOTP, refresh rotation) is still to do.
+
 ### M2 — Vision, goals and weekly rhythm (2 weeks)
 
 | Scope | Exit criteria |
