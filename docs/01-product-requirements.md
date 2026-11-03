@@ -55,9 +55,9 @@ There is exactly one user account. The data model is still multi-user safe (see 
 |---|---|
 | Assumption | One owner. Mobile for capture, desktop for planning and reviews. |
 | Assumption | Data volume stays under ~250k rows in 5 years ([overview §4](README.md#4-expected-data-volume-five-years-heavy-use)). |
-| Constraint | Stack is fixed: Next.js + TypeScript, Tailwind, shadcn/ui, Supabase (Postgres + Auth), PWA, Recharts. |
+| Constraint | Stack is fixed: Next.js + TypeScript, Tailwind, shadcn/ui, Neon PostgreSQL, JWT authentication, PWA, Recharts. Drizzle ORM is the chosen data-access layer ([ADR-001](adr/ADR-001-jwt-auth-and-neon.md)). |
 | Constraint | A solo developer builds and maintains it, so prefer boring, well-documented patterns and few moving parts. |
-| Constraint | Hosting cost should stay low: Vercel plus Supabase Pro once real data exists. |
+| Constraint | Hosting cost should stay low: Vercel plus a paid Neon plan once real data exists. |
 
 ## 1.7 Risks
 
@@ -65,7 +65,8 @@ There is exactly one user account. The data model is still multi-user safe (see 
 |---|---|---|---|
 | Logging friction leads to abandonment | High | High | Quick capture, +1 counters, offline support, evening shutdown ritual, derived metrics (log once, count everywhere) |
 | Over-engineering delays daily use | Medium | High | Milestone 1 ships the daily loop first so data collection starts early |
-| Data loss (free-tier pause, bad migration) | Medium | Critical | Supabase Pro backups, weekly off-site `pg_dump`, expand/contract migrations, restore drills |
+| Data loss (bad migration, accidental delete, provider incident) | Medium | Critical | Neon point-in-time restore, daily off-site `pg_dump`, expand/contract migrations, restore drills |
+| Flaw in self-built authentication | Medium | Critical | Vetted primitives only (`jose`, argon2id, `otplib`). No sign-up, OAuth or email flows to get wrong. `lib/auth` has its own test suite and a release checklist ([06 §3](06-security.md#3-authentication-self-issued-jwt)). |
 | Changing goals invalidate history | High | Medium | Versioned visions, effective-dated targets, score snapshots with formula version |
 | Vendor or framework churn | Medium | Medium | Standard Postgres, full export, domain logic isolated from the framework |
 | Sensitive data exposure (finances, contacts) | Low | High | RLS on every table, MFA, no public sign-up, private storage, security headers ([06](06-security.md)) |
@@ -80,8 +81,8 @@ Priority uses MoSCoW: **M** must, **S** should, **C** could. IDs are stable so t
 
 | ID | Requirement | P |
 |---|---|---|
-| ON-01 | Sign in with email + password, with optional magic link. Enrol TOTP MFA. | M |
-| ON-02 | Public sign-up is disabled. Only the owner's account can exist. | M |
+| ON-01 | Sign in with email + password, then a TOTP code (MFA is mandatory). The server issues a short-lived signed access JWT and a rotating refresh token, both in HTTP-only cookies. | M |
+| ON-02 | No sign-up route exists. The owner account is created with a one-off CLI command. | M |
 | ON-03 | Onboarding wizard captures journey start date (end = start + 5 years − 1 day), timezone, base currency and week start day. | M |
 | ON-04 | Onboarding captures the five-year vision statement and one five-year outcome per pillar. | M |
 | ON-05 | Onboarding offers a seeded metric catalogue per pillar. The owner picks starter metrics and sets weekly targets. | M |
@@ -250,7 +251,7 @@ Priority uses MoSCoW: **M** must, **S** should, **C** could. IDs are stable so t
 
 | ID | Category | Requirement | Measure |
 |---|---|---|---|
-| NFR-01 | Performance | Today page loads fast on a mid-range phone over 4G | LCP ≤ 2.5 s, INP ≤ 200 ms (p75) |
+| NFR-01 | Performance | Today page loads fast on a mid-range phone over 4G | LCP ≤ 2.5 s, INP ≤ 200 ms (p75), measured against a warm database ([05 §1](05-component-architecture.md#1-runtime-architecture) covers Neon cold starts) |
 | NFR-02 | Performance | Quick capture feels instant | Optimistic UI ≤ 100 ms; server confirmation ≤ 1 s |
 | NFR-03 | Performance | Analytics queries stay fast with 5 years of data | ≤ 300 ms server time p95 at 1M rows |
 | NFR-04 | Performance | Small initial JavaScript | Today route ≤ 200 KB gzipped; charts lazy-loaded |
@@ -265,8 +266,8 @@ Priority uses MoSCoW: **M** must, **S** should, **C** could. IDs are stable so t
 | NFR-13 | Accessibility | WCAG 2.2 AA | axe checks in CI; keyboard navigation; charts have table/text alternatives |
 | NFR-14 | Maintainability | Strict typing and validated boundaries | TS `strict`; Zod at every input; generated DB types; ≥ 80% coverage of `lib/domain` |
 | NFR-15 | Maintainability | Decisions recorded | Architecture Decision Records in `docs/adr/` |
-| NFR-16 | Portability | No lock-in beyond Supabase Auth | Plain Postgres schema; full export; no proprietary DB features in business logic |
-| NFR-17 | Observability | Errors and slow queries visible | Error tracking on client and server; Supabase query performance reviewed monthly |
+| NFR-16 | Portability | No vendor lock-in | Plain Postgres schema that runs on any PostgreSQL 16+; in-house auth; full export; no proprietary DB features in business logic |
+| NFR-17 | Observability | Errors and slow queries visible | Error tracking on client and server; `pg_stat_statements` and Neon monitoring reviewed monthly |
 | NFR-18 | Compatibility | Supported platforms | Latest 2 versions of Chrome, Edge, Firefox, Safari; iOS 17+ and Android installable PWA |
 | NFR-19 | Internationalisation | Locale-correct display | English UI; locale-aware number, currency and date formats; day boundaries in owner's timezone |
 | NFR-20 | Cost | Predictable running cost | Fixed monthly hosting; no per-event billing services on the hot path |

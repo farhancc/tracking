@@ -8,7 +8,7 @@ FiveYearOS tracks four strategic pillars — **Sales Mastery**, **Product Entrep
 
 ## Planned stack
 
-Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui · Supabase (PostgreSQL + Auth + Storage) · Installable PWA · Recharts
+Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui · Neon serverless PostgreSQL · Drizzle ORM · self-issued JWT authentication (`jose`, argon2id, TOTP MFA) · Installable PWA · Recharts
 
 ## Architecture documents
 
@@ -22,3 +22,4 @@ Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui · Supabase (Postg
 | 5 | [Component architecture](docs/05-component-architecture.md) | Code structure, data flow, PWA/offline, component library, testing |
 | 6 | [Security](docs/06-security.md) | Threat model, auth, RLS, headers, backups, privacy |
 | 7 | [Development milestones](docs/07-development-milestones.md) | Phased roadmap with exit criteria |
+| ADR | [ADR-001: JWT auth and Neon Postgres](docs/adr/ADR-001-jwt-auth-and-neon.md) | Why the data and auth platform is Neon + self-issued JWTs instead of Supabase |

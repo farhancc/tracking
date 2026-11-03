@@ -4,6 +4,7 @@
 |---|---|
 | **Document status** | Draft v1.0 — for review before any code is written |
 | **Date** | 2026-11-03 |
+| **Revision** | v1.1: data platform changed from Supabase to **Neon PostgreSQL + self-issued JWT authentication** ([ADR-001](adr/ADR-001-jwt-auth-and-neon.md)) |
 | **Scope** | Complete product and system architecture for a single-owner app expected to hold 5+ years of data |
 
 ## 1. What we are building
@@ -23,7 +24,7 @@ FiveYearOS is a mobile-first, installable web app that answers three questions e
 
 Cross-cutting systems hold the pillars together: **Vision & Goals**, a **generic Metrics engine**, **Habits**, **Tasks & Focus**, **Planning & Reviews**, **Journal**, **Learning** and **Analytics**.
 
-## 2. Ten decisions that keep it working for five years without a redesign
+## 2. Eleven decisions that keep it working for five years without a redesign
 
 These are the load-bearing choices. Each is explained in detail in the linked document.
 
@@ -36,9 +37,10 @@ These are the load-bearing choices. Each is explained in detail in the linked do
 | D5 | **Journeys and ventures as first-class entities.** A *journey* is a 5-year horizon. A *venture* is where the work happens (employer job, own company, freelance, content brand). | When you move from employee seller to founder, or start a second five-year plan, nothing breaks. | [04 §4.1](04-database-architecture.md#41-core--identity) |
 | D6 | **Versioned templates with JSONB answers** for reviews and plans, plus versioned visions. | Review questions will evolve. Old reviews stay readable with the questions that were actually asked. | [04 §4.4](04-database-architecture.md#44-rituals-planning-reviews-journal) |
 | D7 | **Correct time and money primitives.** Each record stores the local calendar date (`occurred_on`) plus a UTC timestamp. Money is integer minor units plus an ISO currency, with FX rates. | No timezone drift in daily streaks, no float rounding in five years of finance. | [04 §2](04-database-architecture.md#2-conventions-applied-to-every-table) |
-| D8 | **Every row is owned by a user and protected by Postgres RLS**, with same-owner composite foreign keys. | Secure by default today, and it can become a multi-user SaaS later without reworking the data model. | [06 §4](06-security.md#4-authorisation-row-level-security) |
+| D8 | **Every row is owned by a user and protected by Postgres RLS.** Each request's queries run in a transaction that sets `app.user_id` from the verified JWT. Same-owner composite foreign keys back this up. | Secure by default today, and it can become a multi-user SaaS later without reworking the data model. | [06 §4](06-security.md#4-authorisation-row-level-security) |
 | D9 | **Archive, never hard-delete. Expand/contract migrations. Full export.** | Five years of data survive refactors, mistakes and vendor changes. | [04 §9](04-database-architecture.md#9-migrations-and-schema-evolution) |
 | D10 | **Thin routes, feature modules, pure domain library.** Period maths, scoring, FI projections and money live in a pure, unit-tested `lib/domain`. | The logic that decides "am I on track?" is tested and independent of UI churn. | [05 §3](05-component-architecture.md#3-code-organisation) |
+| D11 | **Self-issued JWT auth, and the database is never exposed to the browser.** A short-lived signed access JWT and a rotating refresh token live in HTTP-only cookies. Only the Next.js server connects to Neon, through Drizzle, with least-privilege roles. | Small attack surface for a single-owner app, no auth-vendor lock-in, and one token model for pages, Server Actions and the offline sync API. | [06 §3](06-security.md#3-authentication-self-issued-jwt) |
 
 ## 3. System at a glance
 
@@ -49,26 +51,30 @@ flowchart LR
     SW["Service worker<br/>app shell cache"]
     IDB[("IndexedDB<br/>offline outbox + query cache")]
   end
-  subgraph Vercel["Vercel"]
+  subgraph Vercel["Vercel (Next.js server)"]
+    PX["proxy.ts<br/>(verify access JWT, refresh, route guard)"]
+    AUTHAPI["Auth routes /api/auth/*<br/>(login, MFA, refresh, logout)"]
     RSC["Server Components<br/>(reads)"]
     SA["Server Actions<br/>(mutations)"]
-    PX["proxy / middleware<br/>(session refresh, route guard)"]
+    SYNC["Sync API /api/v1/sync<br/>(offline replay)"]
+    CRONR["Cron routes /api/cron/*<br/>(Vercel Cron)"]
+    DAL["Data access layer<br/>Drizzle ORM + withUser()"]
   end
-  subgraph Supabase["Supabase"]
-    AUTH["Auth<br/>(email + TOTP MFA)"]
-    PG[("PostgreSQL<br/>tables + RLS + views + RPC")]
-    ST[("Storage<br/>private bucket")]
-    CRON["pg_cron<br/>(score snapshots, housekeeping)"]
+  subgraph Neon["Neon (serverless PostgreSQL)"]
+    PG[("PostgreSQL 17<br/>tables + RLS + views + functions")]
+    BR["Branches<br/>(preview, CI, point-in-time restore)"]
   end
-  UI --> PX --> RSC --> PG
-  UI --> SA --> PG
-  UI -- "offline replay (supabase-js, RLS)" --> PG
-  UI --> AUTH
-  UI --> ST
-  CRON --> PG
+  OBJ[("S3-compatible object storage<br/>private bucket")]
+  UI --> PX --> RSC --> DAL
+  UI --> SA --> DAL
+  UI -- "HTTP-only cookies" --> AUTHAPI --> DAL
+  IDB -- "replay when online" --> SYNC --> DAL
+  CRONR --> DAL
+  DAL -- "pooled TLS connection" --> PG
+  PG -.-> BR
+  UI -- "presigned URL" --> OBJ
   SW -.-> UI
-  IDB -.-> UI
-  GH["GitHub Actions<br/>CI + weekly off-site backup"] --> PG
+  GH["GitHub Actions<br/>CI + daily off-site backup"] --> PG
 ```
 
 ## 4. Expected data volume (five years, heavy use)
@@ -97,6 +103,8 @@ These don't block the architecture, but they need answers before or during Miles
 | Q3 | Are you selling for an employer, your own business, or both? | Both, modelled as separate **ventures**. |
 | Q4 | Which content platforms first? | LinkedIn, YouTube, Instagram, X, Newsletter. User-editable. |
 | Q5 | Bank data: manual entry, CSV import or bank API? | Monthly balance snapshots + CSV import. No bank API in v1. |
-| Q6 | Supabase plan? | Free while building. **Switch to Pro before entering real data**, because free projects pause after a week of inactivity and have no managed backups. |
+| Q6 | Neon plan? | Free while building. The compute scales to zero when idle, so the first request after a quiet period has a short cold start. **Move to a paid plan before entering real data** for a longer point-in-time-restore window. Daily off-site dumps run on any plan. |
 | Q7 | Notifications: web push, email or both? | Web push (installed PWA) with an email fallback for the weekly review. |
 | Q8 | AI features (review summaries, call coaching)? | Out of scope for v1. The schema keeps raw text and notes so this can be added later. |
+| Q9 | Recovery if the MFA device is lost? | 10 single-use recovery codes, plus an owner-only CLI command run with database credentials. No email-based reset in v1. |
+| Q10 | Object storage for attachments? | Cloudflare R2 (S3-compatible, private, presigned URLs). Attachments are a *could* feature, so this can wait until after v1. |

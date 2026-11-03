@@ -1,6 +1,14 @@
 # 4. Database Architecture
 
-Supabase PostgreSQL (15+). All application tables live in the `public` schema, exposed through PostgREST and protected by RLS. Helper functions that must not be callable from the API live in a private `internal` schema.
+PostgreSQL 17 on **Neon** (serverless Postgres). **Only the Next.js server connects to the database. There is no browser-facing database API.** TypeScript accesses it through **Drizzle ORM**.
+
+| Schema | Contents | Reachable by |
+|---|---|---|
+| `public` | All application data, RLS-protected | `fyos_app` (runtime role) |
+| `auth` | Users, sessions, recovery codes, auth audit, rate limits | `fyos_auth` (used only by `lib/auth`) |
+| `app` | Helper functions such as `app.current_user_id()` | Both runtime roles (execute only) |
+
+Roles, connection handling and policies are specified in [06 §4](06-security.md#4-authorisation-row-level-security).
 
 ## 1. Design principles
 
@@ -15,7 +23,7 @@ Supabase PostgreSQL (15+). All application tables live in the `public` schema, e
 | Convention | Rule |
 |---|---|
 | Primary key | `id uuid primary key default gen_random_uuid()`. Clients may supply the id, which makes offline inserts idempotent (retrying the same id is an upsert, not a duplicate). |
-| Ownership | `user_id uuid not null default auth.uid() references auth.users(id) on delete cascade` |
+| Ownership | `user_id uuid not null default app.current_user_id() references auth.users(id) on delete cascade`. `app.current_user_id()` reads the transaction-local `app.user_id` setting, which the server sets from the verified JWT. |
 | Audit columns | `created_at timestamptz not null default now()`, `updated_at timestamptz not null default now()`, maintained by a shared `set_updated_at()` trigger |
 | Archive, not delete | `archived_at timestamptz` on user-managed entities. UI lists filter `archived_at is null`. Hard delete only via "empty trash" after 30 days. |
 | Calendar date vs instant | Events store **both** `occurred_at timestamptz` (the instant) and `occurred_on date` (the local calendar date in the owner's timezone at capture time). All daily/weekly aggregation uses `occurred_on`, so streaks never drift across timezones or DST. |
@@ -31,7 +39,7 @@ Standard column block (abbreviated as **std** in the tables below):
 
 ```sql
 id          uuid primary key default gen_random_uuid(),
-user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+user_id     uuid not null default app.current_user_id() references auth.users(id) on delete cascade,
 created_at  timestamptz not null default now(),
 updated_at  timestamptz not null default now(),
 unique (id, user_id)            -- enables same-owner composite FKs from children
@@ -74,10 +82,20 @@ Domain-specific diagrams appear with each section below.
 
 | Table | Columns (beyond **std**) | Notes |
 |---|---|---|
-| `profiles` | `id uuid pk → auth.users`, `display_name`, `timezone text` (IANA), `base_currency char(3)`, `locale text`, `week_starts_on smallint` (0=Sun…6=Sat, default 1), `active_journey_id`, `settings jsonb` | One row per user, created by trigger on sign-up. No `std` block; `id` is the user id. |
+| `profiles` | `id uuid pk → auth.users`, `display_name`, `timezone text` (IANA), `base_currency char(3)`, `locale text`, `week_starts_on smallint` (0=Sun…6=Sat, default 1), `active_journey_id`, `settings jsonb` | One row per user, created at onboarding. No `std` block; `id` is the user id. |
 | `journeys` | `name`, `start_date date`, `end_date date`, `status` (planned/active/completed), `notes` | A 5-year horizon. A second five-year plan is a new row, so history stays separate and queryable. |
 | `pillars` | `key text` (unique per user: sales, product, brand, wealth), `name`, `description`, `color`, `icon`, `weight numeric(5,2)`, `sort_order`, `archived_at` | Seeded with 4. A fifth pillar (Health, Family) is an insert. |
 | `ventures` | `name`, `kind` (employer/own_company/freelance/content_brand/investment/other), `status` (active/paused/exited/closed), `started_on`, `ended_on`, `ownership_pct numeric`, `notes`, `archived_at` | Where work and money happen. Lets analytics split employer sales from own-business sales and income. |
+
+**Identity (`auth` schema).** These tables are not RLS-scoped, because login has to look a user up by email before anyone is authenticated. Isolation comes from privileges instead: only the `fyos_auth` role can touch them, and the application role cannot read them at all.
+
+| Table | Columns | Notes |
+|---|---|---|
+| `auth.users` | `id uuid pk`, `email citext unique`, `password_hash text` (argon2id PHC string), `password_changed_at`, `mfa_totp_secret_enc bytea` (AES-256-GCM), `mfa_enabled_at`, `mfa_last_used_step bigint`, `failed_login_count int`, `locked_until timestamptz`, `last_login_at`, `token_version int default 1`, `created_at`, `updated_at` | Created only by the owner CLI. Bumping `token_version` invalidates every session and outstanding access token. `mfa_last_used_step` blocks TOTP code replay. |
+| `auth.sessions` | `id uuid pk` (= JWT `sid`), `user_id`, `refresh_token_hash bytea` (SHA-256), `previous_refresh_token_hash bytea`, `rotated_at`, `aal smallint`, `user_agent`, `ip_prefix inet`, `created_at`, `last_used_at`, `expires_at` (sliding), `absolute_expires_at`, `revoked_at`, `revoke_reason` | One row per signed-in device. The refresh token rotates on every use. A previous token presented after the grace window counts as reuse and revokes the session. |
+| `auth.mfa_recovery_codes` | `id`, `user_id`, `code_hash`, `used_at` | 10 single-use codes, generated at MFA enrolment |
+| `auth.events` | `id`, `user_id`, `kind` (login_ok/login_fail/mfa_ok/mfa_fail/refresh/reuse_detected/logout/logout_all/password_change/lockout/recovery_code_used), `session_id`, `ip_prefix`, `user_agent`, `occurred_at` | Insert-only security audit, shown in Settings → Security |
+| `auth.rate_limits` | `key text` (e.g. `login:ip:<prefix>`), `window_start timestamptz`, `count int` | PK `(key, window_start)`. Fixed-window limiter that works across serverless instances. Rows older than a day are purged nightly. |
 
 ### 4.2 Strategy: vision, goals, key results
 
@@ -206,7 +224,7 @@ erDiagram
 | `categorisation_rules` | `match_field` (description/counterparty), `pattern text`, `category_id`, `income_stream_id`, `priority` | Applied on import |
 | `budgets` | `category_id`, `month date` (first of month), `amount_minor`, `currency` | `unique (category_id, month)` |
 | `fi_plans` | `effective_from date`, `annual_expenses_minor`, `safe_withdrawal_rate numeric(5,4)` (default 0.04), `expected_real_return numeric(5,4)`, `inflation_rate numeric(5,4)`, `monthly_contribution_minor`, `notes` | Versioned by `effective_from`. FI number = annual expenses ÷ SWR. |
-| `fx_rates` | `base char(3)`, `quote char(3)`, `rate_date date`, `rate numeric(18,8)` | Global reference data (no `user_id`), read-only to users, maintained by a scheduled job or manual entry. `unique (base, quote, rate_date)`. |
+| `fx_rates` | `base char(3)`, `quote char(3)`, `rate_date date`, `rate numeric(18,8)` | Global reference data (no `user_id`, no RLS). The runtime role can select, insert and update it but not delete. Only the FX cron job writes it. `unique (base, quote, rate_date)`. |
 
 ### 4.9 Learning
 
@@ -223,7 +241,7 @@ erDiagram
 |---|---|---|
 | `tags` | `name`, `color` | `unique (user_id, lower(name))` |
 | `taggings` | `tag_id`, `entity_type text`, `entity_id uuid` | PK `(tag_id, entity_type, entity_id)`. Polymorphic by design: tags span every entity. A check constraint lists allowed entity types, and a nightly job cleans orphans. |
-| `attachments` | `entity_type`, `entity_id`, `storage_path`, `file_name`, `mime_type`, `size_bytes` | Files in a private bucket under `{user_id}/...` |
+| `attachments` | `entity_type`, `entity_id`, `storage_path`, `file_name`, `mime_type`, `size_bytes` | Files in a private S3-compatible bucket (Cloudflare R2) under `{user_id}/...`, accessed only through short-lived presigned URLs issued by the server |
 | `reminders` | `kind` (morning_plan/evening_shutdown/weekly_review/monthly_review/follow_ups/custom), `local_time time`, `days smallint[]`, `channel` (push/email), `is_enabled`, `last_sent_at` | |
 | `push_subscriptions` | `endpoint text unique`, `p256dh`, `auth`, `user_agent`, `last_used_at` | Web Push |
 | `imports` | `kind` (transactions_csv/contacts_csv/restore), `file_path`, `status`, `rows_total`, `rows_imported`, `rows_skipped`, `error_log jsonb`, `finished_at` | Every imported row references its `import_id`, so an import can be undone |
@@ -334,7 +352,7 @@ where p.published_on >= coalesce(d.derived_since, '-infinity')
 
 **Stock metrics derived from snapshots** (net worth, MRR, debt) are exposed as change-points: one row per date the level changes. `metric_series` carries them forward.
 
-### 5.5 `metric_series` RPC
+### 5.5 `metric_series` function
 
 ```sql
 create function metric_series(
@@ -353,15 +371,15 @@ language sql stable security invoker
 - **Stock:** takes the last fact ≤ bucket end (lateral join), carrying values forward across empty buckets.
 - **Target:** joins the `metric_targets` row effective at bucket start for the matching period type (a weekly target is scaled to a day or month only when no native target exists).
 
-Companion RPCs: `metric_value(key, from, to)`, `pillar_scorecard(period_type, period_start)`, `compute_score_snapshots(period_type, period_start)`, `kr_progress(goal_id)`.
+Companion SQL functions: `metric_value(key, from, to)`, `pillar_scorecard(period_type, period_start)`, `compute_score_snapshots(period_type, period_start)`, `kr_progress(goal_id)`.
 
 ---
 
 ## 6. Analytics views
 
-All views are `security_invoker = true`, so RLS applies to the querying user. Without that, a Postgres view runs with its owner's rights and bypasses RLS.
+All views are `security_invoker = true`, so RLS applies to the querying role and its `app.user_id`. Without that, a Postgres view runs with its owner's rights. The owner is `fyos_owner`, which bypasses RLS, so the view would leak every user's rows. Functions are called from the server through Drizzle (`db.execute(sql\`select * from metric_series(...)\`)`).
 
-| View / RPC | Purpose |
+| View / function | Purpose |
 |---|---|
 | `metric_facts` | Union of all metric values (above) |
 | `v_kr_progress` | Current value, progress, expected progress and health per key result |
@@ -376,7 +394,7 @@ All views are `security_invoker = true`, so RLS applies to the querying user. Wi
 | `v_mrr_monthly` | MRR, new, expansion, churned, customers per product |
 | `v_focus_by_pillar_weekly` | Deep-work minutes per pillar |
 | `v_follow_ups_due` | Contacts and deals whose next step is due today or overdue |
-| `global_search(q)` RPC | Full-text search across contacts, deals, ideas, content, notes, goals, tasks, journal |
+| `global_search(q)` function | Full-text search across contacts, deals, ideas, content, notes, goals, tasks, journal |
 
 ## 7. Indexing, volume and performance
 
@@ -397,22 +415,25 @@ All views are `security_invoker = true`, so RLS applies to the querying user. Wi
 
 **Scale-up path, used only when measured, in this order:**
 1. Check with `EXPLAIN ANALYZE` and add a missing index.
-2. Add a `metric_daily` rollup table `(user_id, metric_id, day, scope, value)` refreshed by `pg_cron` every 15 minutes plus on-write triggers for the current day. `metric_series` reads the rollup for closed days and live facts for today. **Trigger point:** any dashboard RPC above 300 ms p95.
+2. Add a `metric_daily` rollup table `(user_id, metric_id, day, scope, value)` refreshed by a scheduled job every 15 minutes plus on-write triggers for the current day. `metric_series` reads the rollup for closed days and live facts for today. **Trigger point:** any dashboard query above 300 ms p95.
 3. Monthly partitioning of `interactions` and `metric_entries`. Not expected to be needed inside ten years.
 
 ## 8. Row-level security (summary)
 
-RLS is enabled on **every** table with the same four owner policies. The full policy template, Storage policies and the tests are in [06-security.md §4](06-security.md#4-authorisation-row-level-security).
+The browser never talks to the database. The Next.js server connects as the least-privilege role `fyos_app` and runs each request's queries inside `withUser()`, a transaction that first calls `set_config('app.user_id', <sub from the verified JWT>, true)`. Every `public` table has RLS enabled with four owner policies comparing `user_id` to `app.current_user_id()`. If the setting is missing, queries return nothing and inserts fail. In other words, it fails closed.
+
+The roles, connection handling, policy template and isolation tests are in [06-security.md §4](06-security.md#4-authorisation-row-level-security).
 
 ## 9. Migrations and schema evolution
 
 | Practice | Rule |
 |---|---|
-| Tooling | Supabase CLI. SQL migrations in `supabase/migrations/` (timestamped), seed data in `supabase/seed.sql`, generated types in `src/types/database.types.ts` |
+| Tooling | **Drizzle Kit.** Table definitions in `src/db/schema/*.ts` are the source of truth. `drizzle-kit generate` writes SQL migrations to `drizzle/migrations/`, which are reviewed and committed. RLS policies, grants, views, functions and triggers go in hand-written custom migrations (`drizzle-kit generate --custom`) in the same sequence. |
+| Who applies migrations | Only CI, as `fyos_owner`, over Neon's **direct** (unpooled) connection. The running app's role cannot run DDL. |
 | Immutability | Never edit an applied migration. Fix forward. |
 | Expand → migrate → contract | Add the new column/table; backfill; deploy code that uses both; then (in a later release) drop the old. A destructive change never ships in the same release as its replacement. |
-| Review | Every migration runs against a copy of production-like data in CI (`supabase db reset` + seed + pgTAP tests) before merge |
-| Types | `supabase gen types typescript` runs in CI. The build fails if committed types are stale. |
+| Review | Every PR gets an ephemeral **Neon branch** (copy-on-write from a synthetic-data branch). CI runs migrate, seed and the integration tests there, then deletes the branch. |
+| Types | Row types come from the Drizzle schema (`$inferSelect` / `$inferInsert`), so there is no generation step. CI runs `drizzle-kit check` and fails if the schema and the migrations disagree. |
 | Seed vs reference | Seeds (pillars, stages, templates, metric catalogue, categories, topics) run per user through a `seed_user_defaults(user_id)` function called at onboarding, not via global inserts |
 
 ## 10. Data lifecycle
@@ -422,8 +443,8 @@ RLS is enabled on **every** table with the same four owner policies. The full po
 | Archive | `archived_at` on user-managed entities. Hidden by default, restorable. |
 | Trash | Hard delete of archived items older than 30 days only through an explicit "Empty trash". Metric history of deleted entities is preserved via `metric_entries`. |
 | Export | Settings → Data: JSON bundle (all tables, schema version stamped) and a ZIP of per-table CSVs, generated server-side and streamed to the user |
-| Backups | Supabase Pro daily backups (PITR optional) **plus** weekly GitHub Action `pg_dump` (encrypted with `age`) to off-site object storage, kept 12 weeks + 1 per month for 5 years |
-| Restore drill | Quarterly: restore the latest dump into a scratch Supabase project and run row-count and checksum queries |
+| Backups | Neon point-in-time restore within the plan's history window (restoring creates a branch at a chosen timestamp, which is fast and non-destructive) **plus** a daily GitHub Action `pg_dump` as `fyos_owner` (encrypted with `age`) to off-site object storage, kept 14 daily + 12 weekly + 60 monthly |
+| Restore drill | Quarterly: restore the latest off-site dump into a fresh Neon branch and run row-count and checksum queries |
 | Retention | Nothing expires automatically. The point of the app is the five-year history. |
 
 ## 11. Evolution playbook: how future changes land without a redesign

@@ -10,7 +10,7 @@ gantt
   dateFormat YYYY-MM-DD
   axisFormat %b
   section Foundation
-  M0 Foundation & shell          :m0, 2026-11-09, 2w
+  M0 Foundation, auth & shell    :m0, 2026-11-09, 3w
   section Daily loop
   M1 Today, habits, journal, metrics :m1, after m0, 3w
   M2 Vision, goals & weekly review   :m2, after m1, 2w
@@ -26,25 +26,26 @@ gantt
 
 ---
 
-### M0 — Foundation and app shell (2 weeks)
+### M0 — Foundation, authentication and app shell (3 weeks)
 
 | Scope | Exit criteria |
 |---|---|
 | Next.js + TypeScript strict, Tailwind, shadcn/ui, ESLint boundaries, Prettier | `npm run build` and CI green |
-| Supabase projects (local, staging, production on Pro), CLI migrations, type generation | `supabase db reset` reproduces the schema from scratch |
-| Conventions migration: `set_updated_at`, RLS policy helper, RLS-coverage CI check | CI fails when a table lacks RLS (verified with a deliberate failing test) |
-| Auth: login, TOTP MFA, sign-up disabled + allow-list hook, `proxy.ts` guard | Second email cannot register; `/today` without `aal2` redirects |
+| Neon project (`main` branch = production, `dev` branch, synthetic-data branch for CI), roles `fyos_owner` / `fyos_app` / `fyos_auth`, Drizzle schema + Drizzle Kit migrations, ephemeral Neon branch per PR | Migrating an empty branch reproduces the schema. The app connects as `fyos_app` and cannot run DDL or read `auth.*`. |
+| Data access layer: pooled connection, `withUser()` transaction helper, ESLint rule banning direct DB imports outside `src/db` | A query outside `withUser()` returns 0 rows (tested) |
+| Conventions migration: `set_updated_at`, `app.current_user_id()`, RLS policy helper, RLS-coverage CI check | CI fails when a table lacks RLS (verified with a deliberate failing test) |
+| **JWT auth** (`lib/auth`): owner-creation CLI, argon2id passwords, login, TOTP enrolment + challenge, recovery codes, ES256 access JWT + rotating refresh token in `__Host-` cookies, reuse detection, lockout and rate limits, logout and logout-everywhere, `proxy.ts` guard and refresh | No sign-up route exists. A replayed old refresh token revokes the session. A tampered, expired or `alg`-swapped JWT is rejected. `/today` without a valid aal2 token redirects to `/login`. ≥ 90% test coverage of `lib/auth`. |
 | Core tables: `profiles`, `journeys`, `pillars`, `ventures`; `seed_user_defaults()` | Seeded pillars appear after first login |
 | App shell: sidebar, bottom nav, module tabs, theme, command palette skeleton | Navigable on phone and desktop |
 | PWA: manifest, icons, service worker (Serwist or manual, decided here), install prompt | Lighthouse "installable" passes; installs on Android and iOS |
-| Security headers + CSP; weekly encrypted backup workflow | securityheaders.com grade A; first backup artifact present |
-| ADR-001…005 written (stack, metrics engine, RLS pattern, offline approach, PWA tooling) | In `docs/adr/` |
+| Security headers + CSP; daily encrypted off-site backup workflow | securityheaders.com grade A; first backup artifact present |
+| ADR-002…005 written (metrics engine, RLS pattern, offline approach, PWA tooling). ADR-001 (JWT auth + Neon) already exists. | In `docs/adr/` |
 
 ### M1 — The daily loop (3 weeks) → *start daily use*
 
 | Scope | Exit criteria |
 |---|---|
-| Metrics engine: `metric_definitions`, `metric_entries`, `metric_targets`, `metric_facts` (manual branch + `life.focus_minutes`), `metric_series` RPC with flow/stock semantics | pgTAP tests prove flow sums and stock carry-forward at all grains, including custom week start |
+| Metrics engine: `metric_definitions`, `metric_entries`, `metric_targets`, `metric_facts` (manual branch + `life.focus_minutes`), `metric_series` function with flow/stock semantics | Integration tests prove flow sums and stock carry-forward at all grains, including custom week start |
 | Onboarding wizard J1 (journey, pillars, ventures, metric picks + targets, habits) | Fresh account onboarded in < 20 min |
 | Tasks (incl. inbox, top-3), habits + logs + streaks, focus sessions, journal | Unit tests for `streaks.ts`, `periods.ts` |
 | Today page (TD-01) with counters, habits, top 3, scheduled tasks | Today LCP ≤ 2.5 s on mid-range phone |
@@ -56,9 +57,9 @@ gantt
 | Scope | Exit criteria |
 |---|---|
 | Versioned vision; goal hierarchy five_year → month; key results linked to metrics; milestones | Goal tree renders; KR progress matches hand calculation |
-| `progress.ts` (progress, expected pace, health) mirrored in `v_kr_progress` | Shared fixtures pass in Vitest and pgTAP |
+| `progress.ts` (progress, expected pace, health) mirrored in `v_kr_progress` | Shared fixtures pass in both the unit and the database integration tests |
 | Review templates (seeded), weekly plan, **weekly review wizard (J6)** with auto-summary | First real weekly review completed |
-| `compute_score_snapshots` v1 + `score_snapshots`; `pg_cron` Monday fallback | Snapshot written on review completion and by cron for a skipped week |
+| `compute_score_snapshots` v1 + `score_snapshots`; Vercel Cron Monday fallback (`/api/cron/score-snapshots`) | Snapshot written on review completion and by cron for a skipped week |
 | Dashboard v1: journey progress, pillar scores, current goals | Dashboard reachable in 1 tap |
 
 ### M3 — Sales Lab (3 weeks)
@@ -106,14 +107,14 @@ gantt
 | Monthly, quarterly (goal grading, KR freeze) and annual review wizards; vision recalibration | Quarterly review copies unfinished goals forward |
 | Year-in-review generator | Generated for a synthetic year of seed data |
 | Global search, tags, export (JSON + CSV), import/restore into empty account | Export → restore round-trip yields identical row counts |
-| **10-year synthetic dataset load test** | All analytics RPCs ≤ 300 ms p95 (NFR-03, NFR-05) |
+| **10-year synthetic dataset load test** (on a Neon branch) | All analytics queries ≤ 300 ms p95 (NFR-03, NFR-05) |
 
 ### M8 — Offline, reminders and hardening (2 weeks) → *v1.0*
 
 | Scope | Exit criteria |
 |---|---|
-| Offline outbox (IndexedDB), sync worker, idempotent upserts, sync status UI | Airplane-mode test: 20 captures replay with 0 loss / 0 duplicates |
-| Web Push reminders (morning, evening, weekly review, follow-ups) via Edge Function + `pg_cron` | Reminders arrive on installed iOS + Android PWA |
+| Offline outbox (IndexedDB), sync worker, `/api/v1/sync` with idempotent upserts, sync status UI | Airplane-mode test: 20 captures replay with 0 loss / 0 duplicates, including across an access-token expiry and a deploy |
+| Web Push reminders (morning, evening, weekly review, follow-ups) sent with `web-push` from `/api/cron/reminders` | Reminders arrive on installed iOS + Android PWA |
 | PWA shortcuts, update toast, logout cache wipe | Verified on devices |
 | Accessibility pass (axe + keyboard + screen-reader smoke test) | 0 serious/critical violations |
 | Security checklist ([06 §10](06-security.md#10-security-checklist-per-release)), first restore drill | Drill logged; checklist complete |
@@ -125,9 +126,10 @@ gantt
 
 | Cadence | Engineering activity |
 |---|---|
-| Weekly | Automated backup; Dependabot PRs |
-| Monthly | Review Supabase advisors and slow queries; dependency updates |
+| Daily | Automated off-site backup |
+| Weekly | Dependabot PRs; glance at `auth.events` for failed logins or reuse detections |
+| Monthly | Review slow queries (`pg_stat_statements`) and Neon usage; dependency updates |
 | Quarterly | Restore drill; review which `custom_fields` deserve promotion to columns |
-| Yearly (after annual review) | Schema and metric-catalogue review; retire unused metrics (archive); score formula review (new `formula_version` if changed); framework major upgrades; key rotation |
+| Yearly (after annual review) | Schema and metric-catalogue review; retire unused metrics (archive); score formula review (new `formula_version` if changed); framework major upgrades; rotate the JWT signing key, the MFA encryption key, database role passwords and VAPID keys |
 
 **Candidate v1.x/v2 features**, all additive to this architecture: platform and bank API importers, AI weekly-review summaries and call-note coaching, calendar sync, Health/Family pillars, a public "build in public" page fed by selected metrics, multi-user SaaS.

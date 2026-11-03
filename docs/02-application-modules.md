@@ -53,8 +53,8 @@ flowchart TB
 | | |
 |---|---|
 | **Purpose** | Identity, configuration and the lookup data everything else references |
-| **Entities** | `profiles`, `journeys`, `pillars`, `ventures`, `tags`, `reminders`, `push_subscriptions`, `imports`, `attachments` |
-| **Screens** | Login, MFA, Onboarding wizard, Settings (profile, pillars, ventures, metrics, templates, notifications, data, security) |
+| **Entities** | `profiles`, `journeys`, `pillars`, `ventures`, `tags`, `reminders`, `push_subscriptions`, `imports`, `attachments`. Identity lives separately in the `auth` schema: `auth.users`, `auth.sessions`, `auth.mfa_recovery_codes`, `auth.events`, `auth.rate_limits`. |
+| **Screens** | Login, MFA challenge, MFA setup + recovery codes, Onboarding wizard, Settings (profile, pillars, ventures, metrics, templates, notifications, data, security) |
 | **Key behaviour** | Journey = 5-year window (day 1…1,826). Pillar weights drive the overall score. Ventures separate employer selling from own-business selling and income. |
 
 ## 2.2 Vision & Goals
@@ -71,7 +71,7 @@ flowchart TB
 | | |
 |---|---|
 | **Purpose** | One source of numeric truth for every KPI, manual or derived |
-| **Entities** | `metric_definitions`, `metric_entries`, `metric_targets`, view `metric_facts`, RPC `metric_series` |
+| **Entities** | `metric_definitions`, `metric_entries`, `metric_targets`, view `metric_facts`, SQL function `metric_series` |
 | **Screens** | Metrics settings (catalogue), Metric detail (series, targets, entries), counter widgets |
 | **Key behaviour** | Flow vs stock semantics; optional scope (product/platform/account/venture); effective-dated targets; derived metrics declared once in SQL. Details in [04 §5](04-database-architecture.md#5-the-metrics-engine). |
 
@@ -192,7 +192,7 @@ Seeded at onboarding. The owner picks which to activate and sets targets. **L** 
 
 ## 2.13 Scoring model
 
-Scores give one honest number per pillar per week. They are computed on weekly review completion (with a `pg_cron` fallback each Monday for missed weeks) and **stored** in `score_snapshots` with a `formula_version`, so changing the formula later never rewrites history.
+Scores give one honest number per pillar per week. They are computed on weekly review completion (with a Vercel Cron fallback each Monday for missed weeks) and **stored** in `score_snapshots` with a `formula_version`, so changing the formula later never rewrites history.
 
 **Pillar score (0–100) for week *w*:**
 

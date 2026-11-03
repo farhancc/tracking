@@ -17,7 +17,7 @@ flowchart LR
 
 | Step | Screen | Writes |
 |---|---|---|
-| 1 | Sign in, enrol TOTP MFA | `auth.users`, MFA factor |
+| 1 | Sign in with the owner account (created by CLI), enrol TOTP MFA, save 10 recovery codes | `auth.users` (MFA secret), `auth.mfa_recovery_codes`, `auth.sessions` |
 | 2 | Journey basics: start date, timezone, base currency, week start | `profiles`, `journeys` |
 | 3 | Confirm or edit the four pillars and their weights | `pillars` (seeded) |
 | 4 | Add ventures: employer, own company, content brand | `ventures` |
@@ -109,7 +109,7 @@ Trigger: morning push notification, or opening the app before the day's plan exi
 
 ### J12 — Monthly data safety check (automated + 1 min)
 
-The weekly off-site backup job posts its status. Settings → Data shows the last backup, last export and row counts. A quarterly reminder prompts a restore drill into a scratch project.
+The daily off-site backup job posts its status. Settings → Data shows the last backup, last export and row counts. A quarterly reminder prompts a restore drill into a scratch project.
 
 ---
 
@@ -205,8 +205,10 @@ Route groups: `(auth)` is public and `(app)` is protected by the session guard. 
 
 | Route | Page |
 |---|---|
-| `/login`, `/login/mfa` | Sign-in, MFA challenge |
-| `/auth/callback` | Supabase auth callback (route handler) |
+| `/login`, `/login/mfa`, `/login/mfa/setup` | Sign-in, MFA challenge, first-time MFA enrolment |
+| `/api/auth/login`, `/api/auth/mfa`, `/api/auth/refresh`, `/api/auth/logout` | Auth route handlers (JSON, `POST` only) |
+| `/api/v1/sync` | Offline outbox replay (versioned, stable across deploys) |
+| `/api/cron/[job]` | Scheduled jobs called by Vercel Cron (protected by `CRON_SECRET`) |
 | `/onboarding/[step]` | Onboarding wizard |
 | `/today` | Today |
 | `/dashboard` | Dashboard |
