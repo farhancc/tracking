@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { devLoginEnabled } from "@/lib/auth/dev";
+import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -11,25 +13,23 @@ export default function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>FiveYearOS</CardTitle>
-          <CardDescription>
-            Password and authenticator-code sign-in arrives with the authentication milestone.
-          </CardDescription>
+          <h1 className="text-xl font-semibold">FiveYearOS</h1>
+          <CardDescription>Sign in with your password and authenticator app.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+            <LoginForm />
+          </Suspense>
           {dev ? (
-            <form action="/api/dev/login" method="post" className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Local development: sign in as the dev owner account (enabled by <code>FYOS_DEV_LOGIN=1</code> under{" "}
-                <code>next dev</code> only).
+            <form action="/api/dev/login" method="post" className="flex flex-col gap-2 border-t pt-4">
+              <p className="text-xs text-muted-foreground">
+                Local development only (<code>FYOS_DEV_LOGIN=1</code> under <code>next dev</code>).
               </p>
-              <Button type="submit">Continue as dev owner</Button>
+              <Button type="submit" variant="outline">
+                Continue as dev owner
+              </Button>
             </form>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Sign-in is not available on this deployment yet. API clients can use a Bearer token.
-            </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </main>

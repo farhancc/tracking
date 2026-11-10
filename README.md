@@ -4,7 +4,7 @@ A personal operating system for a five-year journey toward becoming a successful
 
 FiveYearOS tracks four strategic pillars — **Sales Mastery**, **Product Entrepreneurship**, **Personal Branding** and **Financial Independence** — from a five-year vision down to today's calls, habits and journal entry, and turns that data into weekly, monthly, quarterly and annual reviews.
 
-> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) weekly planning ([docs/10](docs/10-weekly-planning.md)) the daily execution dashboard ([docs/11](docs/11-daily-dashboard.md)) the sales mastery tracker ([docs/12](docs/12-sales-mastery.md)) the communication mastery system ([docs/13](docs/13-communication-mastery.md)) the sales psychology learning lab ([docs/14](docs/14-psychology-lab.md)) the software product portfolio ([docs/15](docs/15-product-portfolio.md)) the product validation tracker ([docs/16](docs/16-product-validation.md)) content management ([docs/17](docs/17-content-management.md)) content analytics ([docs/18](docs/18-content-analytics.md)) knowledge and reading ([docs/19](docs/19-knowledge.md)) the habit tracker ([docs/20](docs/20-habits.md)) the financial independence dashboard ([docs/21](docs/21-finance.md)) the weekly review engine ([docs/22](docs/22-weekly-review.md)) and the AI strategy advisor ([docs/23](docs/23-ai-advisor.md), needs `ANTHROPIC_API_KEY`; not yet exercised with real credentials) daily mobile use with reminders ([docs/24](docs/24-notifications-mobile.md); push not yet received on a real device) and analytics with CSV/PDF reports ([docs/25](docs/25-analytics.md)) are implemented, with schema, REST API, UI and tests. Login (password + TOTP) is the next milestone. Architecture: [`docs/README.md`](docs/README.md).
+> **Status:** the five-year strategic goal engine ([docs/08](docs/08-goal-engine.md)) the annual/quarterly roadmap ([docs/09](docs/09-roadmap.md)) weekly planning ([docs/10](docs/10-weekly-planning.md)) the daily execution dashboard ([docs/11](docs/11-daily-dashboard.md)) the sales mastery tracker ([docs/12](docs/12-sales-mastery.md)) the communication mastery system ([docs/13](docs/13-communication-mastery.md)) the sales psychology learning lab ([docs/14](docs/14-psychology-lab.md)) the software product portfolio ([docs/15](docs/15-product-portfolio.md)) the product validation tracker ([docs/16](docs/16-product-validation.md)) content management ([docs/17](docs/17-content-management.md)) content analytics ([docs/18](docs/18-content-analytics.md)) knowledge and reading ([docs/19](docs/19-knowledge.md)) the habit tracker ([docs/20](docs/20-habits.md)) the financial independence dashboard ([docs/21](docs/21-finance.md)) the weekly review engine ([docs/22](docs/22-weekly-review.md)) and the AI strategy advisor ([docs/23](docs/23-ai-advisor.md), needs `ANTHROPIC_API_KEY`; not yet exercised with real credentials) daily mobile use with reminders ([docs/24](docs/24-notifications-mobile.md); push not yet received on a real device) and analytics with CSV/PDF reports ([docs/25](docs/25-analytics.md)) are implemented, with schema, REST API, UI and tests. Sign-in is password + authenticator app (TOTP) with recovery codes ([docs/06 §11](docs/06-security.md#11-implementation-status-login-milestone)). Architecture: [`docs/README.md`](docs/README.md).
 
 ## Planned stack
 
@@ -83,7 +83,7 @@ Requirements: Node.js 20.9+, PostgreSQL 16+ (local, or a Neon branch).
    npm run auth:keygen
    ```
 
-7. Start the app, open http://localhost:3000 (it opens on Today) and choose **Continue as dev owner** (needs `FYOS_DEV_LOGIN=1`).
+7. Start the app, open http://localhost:3000 (it opens on Today) and choose **Continue as dev owner** (needs `FYOS_DEV_LOGIN=1`), or set a real password with `npm run owner:create -- you@example.com` and sign in with it (you'll set up an authenticator app on first sign-in).
 
    ```bash
    npm run dev
@@ -102,3 +102,5 @@ npm run dev:token
 | `npm run typecheck` / `npm run lint` / `npm run build` | Static checks and production build |
 | `npm run db:generate` | Generate a migration after changing `src/db/schema` |
 | `npm run push:keygen` | Generate VAPID keys for Web Push (docs/24) |
+| `npm run auth:keygen` | Generate the JWT signing keys and `AUTH_ENCRYPTION_KEY` |
+| `npm run owner:create -- <email>` / `npm run owner:reset -- <email>` | Create the owner account or set a new password; `reset` also removes the authenticator |

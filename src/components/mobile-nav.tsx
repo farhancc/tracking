@@ -56,8 +56,8 @@ export function MobileTabs({ pathname }: { pathname: string | null }) {
                 </ul>
               </section>
             ))}
-            <Link href="/settings/notifications" onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg border px-3 hover:bg-accent">
-              Notification settings
+            <Link href="/settings" onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg border px-3 hover:bg-accent">
+              Settings
             </Link>
           </div>
         </div>

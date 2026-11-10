@@ -3,12 +3,12 @@
  * Login looks users up by email before anyone is authenticated, so these
  * tables are isolated by privileges rather than RLS. See docs/06-security.md §3–4.
  *
- * This migration creates only what request authentication needs today
- * (users + sessions). Login, MFA, refresh rotation, audit events and rate
- * limits are delivered by the authentication milestone (M0).
+ * users + sessions (request authentication), recovery codes (MFA fallback),
+ * events (audit log shown in Settings → Security) and rate limits (per IP
+ * prefix).
  */
 import { sql } from "drizzle-orm";
-import { index, integer, pgSchema, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const authSchema = pgSchema("auth");
 
@@ -53,4 +53,46 @@ export const sessions = authSchema.table(
     revokeReason: text("revoke_reason"),
   },
   (t) => [index("sessions_user_idx").on(t.userId)],
+);
+
+/** Single-use MFA recovery codes, argon2id-hashed. */
+export const recoveryCodes = authSchema.table(
+  "recovery_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("recovery_codes_user_idx").on(t.userId)],
+);
+
+/** Audit log of authentication events (no secrets, no tokens). */
+export const authEvents = authSchema.table(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id"),
+    type: text("type").notNull(),
+    ipPrefix: text("ip_prefix"),
+    userAgent: text("user_agent"),
+    detail: jsonb("detail").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("events_user_created_idx").on(t.userId, t.createdAt)],
+);
+
+/** Fixed-window request counters per IP prefix and bucket. */
+export const rateLimits = authSchema.table(
+  "rate_limits",
+  {
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
 );

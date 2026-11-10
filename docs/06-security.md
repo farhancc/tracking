@@ -244,3 +244,31 @@ create policy "<table>_delete_own" on public.<table>
 - [ ] No new `NEXT_PUBLIC_` variables except non-secret values
 - [ ] `npm audit` shows no high/critical issues
 - [ ] CSP updated if a new origin is required
+
+## 11. Implementation status (login milestone)
+
+Implemented and tested: everything in §3, with the notes below.
+
+| Area | Where | Tested by |
+|---|---|---|
+| Password step, generic errors, dummy argon2 verify for unknown emails | `src/lib/auth/login.ts` `passwordLogin` | `tests/integration/auth.test.ts` |
+| Lockout after 5 failures: 1 → 5 → 15 → 60 min; MFA failures count too | `recordFailure` | integration |
+| IP-prefix rate limit, 20 / 10 min (`auth.rate_limits`) | `hitRateLimit` | integration |
+| TOTP (RFC 6238), ±1 step, replay blocked with a conditional update | `src/lib/auth/totp.ts`, `completeMfa` | RFC 4226/6238 vectors (unit) + integration |
+| TOTP secret encrypted with AES-256-GCM (`AUTH_ENCRYPTION_KEY`) | `src/lib/auth/secret-box.ts` | unit (tamper, wrong key) + integration (stored value is sealed) |
+| First-login enrolment with QR code; 10 single-use recovery codes, argon2id-hashed | `startEnrollment`, `confirmEnrollment` | integration + browser |
+| MFA challenge JWT (`aal: 1`, separate audience, 5 min; 10 min during setup) in `__Host-fyos_mfa` | `src/lib/auth/jwt.ts` | browser |
+| Refresh rotation with a 30 s grace window and reuse → revoke | `rotateRefresh`; run by `src/proxy.ts` on page **and** API requests, and by `POST /api/auth/refresh` | integration + browser |
+| Logout, logout everywhere (bumps `token_version`), password change (password + TOTP; signs out every device, new session for this one) | `src/lib/auth/routes.ts` | integration + browser |
+| Settings → Security: devices with revoke, change password, new recovery codes, last 50 events | `/settings/security` | browser |
+| Owner CLI: `npm run owner:create -- <email>` / `npm run owner:reset -- <email>` (also removes the authenticator) | `scripts/owner.ts` | run against the dev database |
+| Auth routes accept only same-origin JSON POSTs (SEC-AUTH-11) | `authPost()` in `src/lib/auth/http.ts` | browser |
+| The app role cannot read any `auth.*` table | `drizzle/0036_auth_login_grants.sql` | integration |
+
+Notes and deviations:
+
+- **TOTP** is implemented on `node:crypto` HMAC instead of `otplib`: about 40 lines, checked against the RFC test vectors, with one less dependency.
+- **The owner CLI** uses the `fyos_auth` role (`AUTH_DATABASE_URL`), which has exactly the privileges it needs, rather than `fyos_owner`.
+- **Lockout.** Attempts made while an account is locked are refused but don't extend the lock, so an attacker can't keep the owner locked out indefinitely. Escalation applies to failures after a lock ends.
+- **Breached passwords.** The Pwned Passwords check runs in the CLI, where passwords are set. If the service can't be reached, the CLI warns and continues. Password changes in the app apply the length/variety policy but not the breach check.
+- **Development sign-in** (`/api/dev/login`) stays available only under `next dev` with `FYOS_DEV_LOGIN=1`.

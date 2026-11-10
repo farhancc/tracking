@@ -14,3 +14,6 @@ const publicJwk = { ...(await exportJWK(publicKey)), ...meta };
 
 console.log(`AUTH_JWT_PRIVATE_JWK='${JSON.stringify(privateJwk)}'`);
 console.log(`AUTH_JWT_PUBLIC_JWKS='${JSON.stringify({ keys: [publicJwk] })}'`);
+// AES-256-GCM key for TOTP secrets at rest. Changing it makes the stored
+// authenticator unreadable: run `npm run owner:reset` afterwards.
+console.log(`AUTH_ENCRYPTION_KEY='${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64")}'`);

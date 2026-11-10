@@ -85,3 +85,37 @@ export function bearerToken(authorization: string | null | undefined): string | 
   const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
   return match ? match[1] : null;
 }
+
+// ---------------------------------------------------------------------------
+// MFA challenge: proves the password step passed. aal 1, so verifyAccessToken
+// rejects it; accepted only by the MFA endpoints.
+
+export const MFA_COOKIE = "__Host-fyos_mfa";
+export const REFRESH_COOKIE = "__Host-fyos_rt";
+export type ChallengeClaims = { sub: string; enrolled: boolean };
+
+export async function signChallengeToken(c: ChallengeClaims, ttlSeconds = 5 * 60): Promise<string> {
+  const raw = process.env.AUTH_JWT_PRIVATE_JWK;
+  if (!raw) throw new Error("AUTH_JWT_PRIVATE_JWK is not set. Run `npm run auth:keygen`.");
+  const jwk = JSON.parse(raw) as JWK;
+  const key = await importJWK(jwk, "ES256");
+  return new SignJWT({ purpose: "mfa", aal: 1, enr: c.enrolled })
+    .setProtectedHeader({ alg: "ES256", kid: jwk.kid, typ: "JWT" })
+    .setSubject(c.sub)
+    .setIssuer(issuer())
+    .setAudience(`${audience()}:mfa`)
+    .setIssuedAt()
+    .setExpirationTime(`${ttlSeconds}s`)
+    .setJti(crypto.randomUUID())
+    .sign(key);
+}
+
+export async function verifyChallengeToken(token: string): Promise<ChallengeClaims | null> {
+  try {
+    const { payload } = await jwtVerify(token, getJwks(), { algorithms: ["ES256"], issuer: issuer(), audience: `${audience()}:mfa`, clockTolerance: 5, requiredClaims: ["sub", "exp"] });
+    if (payload.purpose !== "mfa" || typeof payload.sub !== "string") return null;
+    return { sub: payload.sub, enrolled: payload.enr === true };
+  } catch {
+    return null;
+  }
+}

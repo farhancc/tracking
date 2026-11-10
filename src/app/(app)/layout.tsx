@@ -1,4 +1,4 @@
-import { Target } from "lucide-react";
+import { Settings, Target } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { MainNav, NavBar } from "@/components/main-nav";
@@ -28,6 +28,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Suspense fallback={<BellLink count={null} />}>
               <InboxBell />
             </Suspense>
+            <Link href="/settings" className="hidden size-10 place-items-center rounded-md hover:bg-accent sm:grid" aria-label="Settings">
+              <Settings className="size-5" aria-hidden />
+            </Link>
             <SignOutForm />
           </div>
         </div>
