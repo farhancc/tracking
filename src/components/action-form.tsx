@@ -57,7 +57,7 @@ export function ActionForm({
 
   const error =
     state && !state.ok ? (
-      <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+      <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-ink">
         <p>{state.message}</p>
         {fieldMessages.length > 0 && fieldMessages[0] !== state.message ? (
           <ul className="mt-1 list-disc pl-4 text-xs">

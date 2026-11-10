@@ -179,7 +179,7 @@ export async function RoadmapOverview() {
                       {q.focus ? <span className="line-clamp-2 text-xs">{q.focus}</span> : null}
                       <QuarterMetrics q={q} />
                       {q.reviewDue ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-warning">
+                        <span className="inline-flex items-center gap-1 text-xs text-warning-ink">
                           <CircleAlert className="size-3" aria-hidden /> Review due
                         </span>
                       ) : q.reviewedAt ? (

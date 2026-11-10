@@ -430,7 +430,7 @@ export async function SalesDashboard({ searchParams }: { searchParams: Promise<R
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {PROSPECT_STATUS_LABELS[p.status as ProspectStatus]}
-                        {p.nextFollowUpOn ? <span className={due ? "text-warning" : undefined}> · follow up {p.nextFollowUpOn}</span> : null}
+                        {p.nextFollowUpOn ? <span className={due ? "text-warning-ink" : undefined}> · follow up {p.nextFollowUpOn}</span> : null}
                       </p>
                     </div>
                     <ActionForm action={setFollowUpAction.bind(null, p.id)} submitLabel="Set" submitVariant="outline" inline resetOnSuccess={false} submitClassName="h-8">

@@ -16,7 +16,7 @@ async function post(path: string, body: unknown) {
 
 function Alert({ message }: { message: string | null }) {
   return message ? (
-    <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-ink">
       {message}
     </p>
   ) : null;

@@ -126,7 +126,7 @@ export async function QuarterView({ params }: { params: Promise<{ quarter: strin
                   {assessment.warnings.map((w) => (
                     <li key={w.code} className="flex items-start gap-2 text-sm">
                       {w.level === "warning" ? (
-                        <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-label="Warning" />
+                        <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning-ink" aria-label="Warning" />
                       ) : (
                         <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-label="Note" />
                       )}

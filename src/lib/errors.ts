@@ -81,6 +81,10 @@ export function toAppError(e: unknown): AppError {
         return new AppError(403, "forbidden", "Not allowed.");
     }
   }
+  // Drizzle refuses an UPDATE with nothing in SET: a PATCH whose body has no recognised fields.
+  if (e instanceof Error && e.message === "No values to set") {
+    return new AppError(400, "invalid_input", "Send at least one field to change.");
+  }
   console.error(e);
   return new AppError(500, "internal_error", "Something went wrong.");
 }

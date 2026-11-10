@@ -24,7 +24,7 @@ function ObservationLine({ o }: { o: Observation }) {
   const Icon = o.tone === "good" ? CheckCircle2 : o.tone === "concern" ? AlertTriangle : Minus;
   return (
     <li className="flex items-start gap-2 text-sm">
-      <Icon className={cn("mt-0.5 size-4 shrink-0", o.tone === "good" && "text-success", o.tone === "concern" && "text-warning", o.tone === "neutral" && "text-muted-foreground")} aria-hidden />
+      <Icon className={cn("mt-0.5 size-4 shrink-0", o.tone === "good" && "text-success", o.tone === "concern" && "text-warning-ink", o.tone === "neutral" && "text-muted-foreground")} aria-hidden />
       <span>
         <span className="sr-only">{o.tone === "concern" ? "Concern: " : o.tone === "good" ? "Good: " : ""}</span>
         {o.text}
@@ -147,7 +147,7 @@ export async function ReviewView({ weekStart }: { weekStart?: string }) {
             <ul className="flex flex-col gap-2">
               {data.patterns.map((p) => (
                 <li key={p} className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden /> {p}
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-ink" aria-hidden /> {p}
                 </li>
               ))}
             </ul>

@@ -25,3 +25,12 @@ export async function runAsUser<T>(database: Database, userId: string, fn: (tx: 
     return fn(tx);
   });
 }
+
+/**
+ * Serialises "create defaults on first use" code across concurrent requests
+ * for the same user (e.g. a page render and a prefetch). Transaction-scoped:
+ * released at commit or rollback.
+ */
+export async function lockForUser(tx: Tx, key: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key} || ':' || app.current_user_id()::text))`);
+}

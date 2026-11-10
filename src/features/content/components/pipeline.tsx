@@ -38,7 +38,7 @@ export async function ContentPipeline() {
         </div>
       ) : null}
 
-      <section aria-label="Pipeline" className="-mx-4 overflow-x-auto px-4 pb-2">
+      <section aria-label="Pipeline" tabIndex={0} className="-mx-4 overflow-x-auto px-4 pb-2 focus-visible:outline-2 focus-visible:outline-ring">
         <ol className="grid min-w-[1120px] grid-cols-8 gap-3">
           {CONTENT_STATUSES.map((s) => {
             const list = data.items.filter((i) => i.status === s && (s !== "reviewed" || recentReviewed.has(i.id)));

@@ -307,9 +307,10 @@ export async function regenerateRecoveryCodes(db: Database, userId: string, code
 /** Owner CLI: create the single owner or set the password; optionally reset MFA. Signs out every device. */
 export async function setOwnerCredentials(db: Database, input: { email: string; password: string; resetMfa?: boolean }) {
   const email = normalizeEmail(input.email);
-  const existing = await db.select({ id: users.id, email: users.email }).from(users);
+  const existing = await db.select({ id: users.id, email: users.email, hasPassword: sql<boolean>`${users.passwordHash} is not null` }).from(users);
   const same = existing.find((u) => u.email.toLowerCase() === email);
-  const others = existing.filter((u) => u.email.toLowerCase() !== email && !u.email.endsWith("@localhost"));
+  // An owner is an account that can sign in (has a password). Local development accounts (@localhost) don't count.
+  const others = existing.filter((u) => u.hasPassword && u.email.toLowerCase() !== email && !u.email.endsWith("@localhost"));
   if (!same && others.length) throw new Error(`An owner already exists (${others[0].email}). FiveYearOS has exactly one owner.`);
   const passwordHash = await hashSecret(input.password);
   const mfaReset = input.resetMfa ? { mfaTotpSecretEnc: null, mfaEnabledAt: null, mfaLastUsedStep: null } : {};

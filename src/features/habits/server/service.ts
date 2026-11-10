@@ -4,7 +4,7 @@
  * with daily priorities.
  */
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
-import type { Tx } from "@/db/drizzle";
+import { lockForUser, type Tx } from "@/db/drizzle";
 import { habitCheckins, habits, restDays, tasks } from "@/db/schema";
 import { requireWorkspace } from "@/features/goals/server/service";
 import { addDays, addMonths, startOfWeek, type IsoDate } from "@/lib/domain/dates";
@@ -28,6 +28,8 @@ export type HabitRow = typeof habits.$inferSelect;
 /** First visit with no habits at all: the nine habits from the plan (all editable). */
 export async function ensureDefaultHabits(tx: Tx) {
   const ws = await requireWorkspace(tx);
+  // Habit names aren't unique, so concurrent first visits would each add the nine habits; serialise them.
+  await lockForUser(tx, "default-habits");
   const [{ n }] = await tx.select({ n: count() }).from(habits);
   if (n > 0) return false;
   await tx.insert(habits).values(DEFAULT_HABITS.map((h, i) => ({ ...h, sortOrder: i, startedOn: ws.today })));

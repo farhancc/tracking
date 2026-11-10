@@ -93,7 +93,7 @@ export async function CommunicationOverview() {
                   {s.status.change !== null && s.status.change !== 0 ? ` · ${s.status.change > 0 ? "+" : ""}${s.status.change} since first assessment` : ""}
                 </p>
                 {s.status.needsAssessment ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-warning">
+                  <span className="inline-flex items-center gap-1 text-xs text-warning-ink">
                     <CircleAlert className="size-3" aria-hidden />
                     {s.status.lastAssessedOn ? `Assessment due (last ${s.status.lastAssessedOn})` : "Practised but never assessed"}
                   </span>

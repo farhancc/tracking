@@ -459,7 +459,7 @@ export function GoalForm({
       </Card>
 
       {state && !state.ok ? (
-        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive-ink">
           {state.message}
         </div>
       ) : null}

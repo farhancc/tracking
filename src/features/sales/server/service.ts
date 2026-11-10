@@ -57,8 +57,11 @@ export async function ensureDefaultTrack(tx: Tx): Promise<TrackRow> {
     return row;
   }
   const ws = await requireWorkspace(tx);
-  const [row] = await tx.insert(salesTracks).values({ name: "My sales", currency: ws.baseCurrency, isDefault: true }).returning();
-  return row;
+  // Two first visits can race here; the unique (user, name) key lets the second one fall back to a re-read.
+  const [row] = await tx.insert(salesTracks).values({ name: "My sales", currency: ws.baseCurrency, isDefault: true }).onConflictDoNothing({ target: [salesTracks.userId, salesTracks.name] }).returning();
+  if (row) return row;
+  const [winner] = await tx.select().from(salesTracks).where(and(eq(salesTracks.name, "My sales"), isNull(salesTracks.archivedAt))).limit(1);
+  return winner;
 }
 
 export async function createTrack(tx: Tx, input: { name: string; currency: string; description: string | null; isDefault: boolean }) {

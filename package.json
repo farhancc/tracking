@@ -21,7 +21,8 @@
     "dev:token": "tsx scripts/dev-token.ts",
     "push:keygen": "tsx scripts/vapid-keys.ts",
     "owner:create": "tsx scripts/owner.ts create",
-    "owner:reset": "tsx scripts/owner.ts reset"
+    "owner:reset": "tsx scripts/owner.ts reset",
+    "test:e2e": "node tests/e2e/workflows.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.4.0",

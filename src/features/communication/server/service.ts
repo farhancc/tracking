@@ -225,8 +225,9 @@ export async function findRecording(tx: Tx, id: string): Promise<RecordingRow> {
   return r;
 }
 
-export async function deleteRecording(tx: Tx, storage: Storage, id: string) {
+/** `storage` is resolved only after the recording is found, so a missing id is a 404 even without storage configured. */
+export async function deleteRecording(tx: Tx, storage: Storage | (() => Storage), id: string) {
   const r = await findRecording(tx, id);
   await tx.delete(commRecordings).where(eq(commRecordings.id, id)); // FK restrict: fails if still attached
-  await storage.delete(r.storageKey);
+  await (typeof storage === "function" ? storage() : storage).delete(r.storageKey);
 }

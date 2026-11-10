@@ -19,6 +19,10 @@
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.53 0.15 155);
   --warning: oklch(0.72 0.16 70);
+  /* Text on white or on a 15 % tint of the status colour (≥ 4.5:1). */
+  --success-ink: oklch(0.45 0.13 155);
+  --destructive-ink: oklch(0.5 0.2 27);
+  --warning-ink: oklch(0.5 0.12 70);
   /* Categorical chart series, validated for CVD separation and contrast (see docs/15). */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
@@ -46,6 +50,9 @@
     --destructive-foreground: oklch(0.145 0 0);
     --success: oklch(0.7 0.15 155);
     --warning: oklch(0.8 0.15 75);
+    --success-ink: oklch(0.7 0.15 155);
+    --destructive-ink: oklch(0.704 0.191 22.216);
+    --warning-ink: oklch(0.8 0.15 75);
     --chart-1: #3987e5;
     --chart-2: #d95926;
     --chart-3: #199e70;
@@ -72,6 +79,9 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-success-ink: var(--success-ink);
+  --color-destructive-ink: var(--destructive-ink);
+  --color-warning-ink: var(--warning-ink);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -85,6 +95,17 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Keep focused and scrolled-to elements clear of the sticky header and, on phones,
+     the fixed bottom tab bar (WCAG 2.4.11 Focus Not Obscured). */
+  html {
+    scroll-padding-top: 4.5rem;
+    scroll-padding-bottom: 1rem;
+  }
+  @media (max-width: 639px) {
+    html {
+      scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
   }
   body {
     @apply bg-background text-foreground antialiased;

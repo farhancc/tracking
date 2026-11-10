@@ -265,7 +265,7 @@ export async function ItemDetail({ params }: { params: Promise<{ id: string }> }
                   </ActionForm>
                 </details>
                 {data.metrics.length ? (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
                     <table className="w-full min-w-[560px] text-sm tabular-nums">
                       <thead className="text-left text-xs text-muted-foreground">
                         <tr>

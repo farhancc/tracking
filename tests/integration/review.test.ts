@@ -61,7 +61,10 @@ describe("weekly review", () => {
 
     // Draft saves; completing needs a reason for every miss.
     await h.as(o.userId, (tx) => saveReview(tx, lastWeek, answersSchema.parse({ biggestAchievement: "Acme proposal out" })));
-    await expect(h.as(o.userId, (tx) => completeReview(tx, lastWeek, answersSchema.parse({})))).rejects.toMatchObject({ code: "reasons_required" });
+    // A blank review can't be completed…
+    await expect(h.as(o.userId, (tx) => completeReview(tx, lastWeek, answersSchema.parse({})))).rejects.toMatchObject({ code: "reflection_required" });
+    // …and a reflection without reasons for the misses can't either.
+    await expect(h.as(o.userId, (tx) => completeReview(tx, lastWeek, answersSchema.parse({ learned: "Proposals take twice as long" })))).rejects.toMatchObject({ code: "reasons_required" });
     const answers = answersSchema.parse({
       missed: [{ goalId: missed.id, reason: "too_ambitious", note: "50 was a guess" }],
       biggestAchievement: "Acme proposal out",

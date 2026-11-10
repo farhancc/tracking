@@ -171,7 +171,7 @@ export async function FinanceDashboard() {
             currency={cur}
             data={data.months.map((m) => ({ label: monthLabel(m.month) + (m.month === thisMonth ? " (to date)" : ""), income: m.totalIncome, expenses: m.expenses, savings: m.savings }))}
           />
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
             <table className="w-full min-w-[880px] text-sm tabular-nums">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>
@@ -391,7 +391,7 @@ export async function FinanceDashboard() {
             <CardDescription>Plans you enter, shown next to what actually happened. Forecasts never change the actual figures.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
               <table className="w-full min-w-[420px] text-sm tabular-nums">
                 <thead className="text-left text-xs text-muted-foreground">
                   <tr>

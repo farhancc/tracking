@@ -14,6 +14,7 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { AppError } from "@/lib/errors";
 
 export interface Storage {
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
@@ -95,7 +96,7 @@ export function getStorage(): Storage {
   if (driver === "s3") {
     const need = (name: string) => {
       const v = process.env[name];
-      if (!v) throw new Error(`${name} is not set (required for STORAGE_DRIVER=s3).`);
+      if (!v) throw new AppError(503, "storage_not_configured", `File storage is misconfigured: ${name} is not set (required for STORAGE_DRIVER=s3).`);
       return v;
     };
     cached = createS3Storage({
@@ -107,7 +108,7 @@ export function getStorage(): Storage {
     });
   } else {
     if (process.env.NODE_ENV === "production" && process.env.STORAGE_ALLOW_LOCAL !== "1") {
-      throw new Error("Local file storage is disabled in production. Set STORAGE_DRIVER=s3 and the STORAGE_S3_* variables.");
+      throw new AppError(503, "storage_not_configured", "File storage isn't configured on this server (set STORAGE_DRIVER=s3 and the STORAGE_S3_* variables).");
     }
     // The directory is only known at runtime; tell Turbopack not to trace it into the bundle.
     cached = createLocalStorage(path.resolve(/* turbopackIgnore: true */ process.cwd(), process.env.STORAGE_LOCAL_DIR ?? ".data/uploads"));

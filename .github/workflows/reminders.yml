@@ -1,0 +1,24 @@
+name: Reminders
+
+# Calls the reminder job every 15 minutes (docs/24 §5). Does nothing until the
+# repository variable APP_URL (e.g. https://fiveyearos.example.com) and the
+# secret CRON_SECRET (same value as the app's CRON_SECRET) are set.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    if: ${{ vars.APP_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run due reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          curl -fsS --retry 3 --retry-delay 10 --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/notifications"

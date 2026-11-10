@@ -127,7 +127,7 @@ export async function TodayView({ day }: { day?: string }) {
             {data.availableMinutes !== null
               ? `${formatMinutes(data.openMinutes)} of work left · ${formatMinutes(data.availableMinutes)} available`
               : `${formatMinutes(data.plannedMinutes)} planned · set your available time below`}
-            {over ? <span className="text-warning"> · over by {formatMinutes(data.openMinutes - (data.availableMinutes ?? 0))}</span> : null}
+            {over ? <span className="text-warning-ink"> · over by {formatMinutes(data.openMinutes - (data.availableMinutes ?? 0))}</span> : null}
           </p>
         </div>
         <ProgressRing pct={data.progress.pct} />
@@ -401,8 +401,8 @@ export async function TodayView({ day }: { day?: string }) {
         </ActionForm>
       </details>
 
-      {/* One-handed quick add, anchored to the bottom of the screen */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+      {/* One-handed quick add, anchored to the bottom of the screen; on phones it sits just above the tab bar. */}
+      <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t bg-background/95 px-4 pb-3 pt-3 backdrop-blur sm:bottom-0 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-2xl">
           <ActionForm action={quickAddTaskAction.bind(null, d, null)} submitLabel="Add" inline className="items-center gap-2" submitClassName="h-12 px-5">
             <Input name="title" placeholder="Add a task for today…" aria-label="New task for today" className="h-12 text-base" required maxLength={300} />

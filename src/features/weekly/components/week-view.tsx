@@ -115,7 +115,7 @@ function Scorecard({ s, frozen }: { s: WeeklyScorecard; frozen: boolean }) {
             return (
               <li key={i.message} className="flex items-start gap-2 text-sm">
                 <Icon
-                  className={cn("mt-0.5 size-4 shrink-0", i.level === "warning" ? "text-warning" : i.level === "positive" ? "text-success" : "text-muted-foreground")}
+                  className={cn("mt-0.5 size-4 shrink-0", i.level === "warning" ? "text-warning-ink" : i.level === "positive" ? "text-success" : "text-muted-foreground")}
                   aria-hidden
                 />
                 <span>{i.message}</span>

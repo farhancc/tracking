@@ -25,7 +25,7 @@ export function pruneTree(nodes: GoalTreeNode[], match: (n: GoalTreeNode) => boo
 export function GoalTree({ nodes, pillars }: { nodes: GoalTreeNode[]; pillars: PillarRow[] }) {
   const pillarById = new Map(pillars.map((p) => [p.id, p]));
   return (
-    <ul className="flex flex-col gap-2" role="tree">
+    <ul className="flex flex-col gap-2" aria-label="Goal hierarchy">
       {nodes.map((node) => (
         <GoalTreeItem key={node.id} node={node} pillarById={pillarById} depth={0} />
       ))}
@@ -55,7 +55,7 @@ function GoalTreeItem({
           </span>
           <PillarTag pillar={pillarById.get(node.pillarId)} />
           {node.blockedBy > 0 ? (
-            <span className="inline-flex items-center gap-1 text-xs text-warning" title="Blocked by unachieved prerequisites">
+            <span className="inline-flex items-center gap-1 text-xs text-warning-ink" title="Blocked by unachieved prerequisites">
               <Lock className="size-3" aria-hidden /> Blocked by {node.blockedBy}
             </span>
           ) : null}
@@ -83,30 +83,25 @@ function GoalTreeItem({
     </div>
   );
 
-  if (node.children.length === 0) {
-    return (
-      <li role="treeitem" aria-selected={false} className="pl-6">
-        {row}
-      </li>
-    );
-  }
-
+  // A plain nested list: links stay outside <summary> (no nested interactive content),
+  // and the disclosure only toggles the sub-goals.
   return (
-    <li role="treeitem" aria-selected={false} aria-expanded>
-      <details open={depth < 2} className="group">
-        <summary className="flex cursor-pointer list-none items-start gap-1 [&::-webkit-details-marker]:hidden">
-          <ChevronRight
-            className="mt-4 size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
-            aria-hidden
-          />
-          <div className="min-w-0 flex-1">{row}</div>
-        </summary>
-        <ul role="group" className="mt-2 flex flex-col gap-2 border-l pl-3 sm:ml-2.5 sm:pl-4">
-          {node.children.map((child) => (
-            <GoalTreeItem key={child.id} node={child} pillarById={pillarById} depth={depth + 1} />
-          ))}
-        </ul>
-      </details>
+    <li>
+      {row}
+      {node.children.length > 0 ? (
+        <details open={depth < 2} className="group mt-1">
+          <summary className="ml-1 inline-flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="size-4 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
+            {node.children.length} {node.children.length === 1 ? "sub-goal" : "sub-goals"}
+            <span className="sr-only"> of {node.title}</span>
+          </summary>
+          <ul className="mt-1 flex flex-col gap-2 border-l pl-3 sm:ml-2.5 sm:pl-4">
+            {node.children.map((child) => (
+              <GoalTreeItem key={child.id} node={child} pillarById={pillarById} depth={depth + 1} />
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </li>
   );
 }

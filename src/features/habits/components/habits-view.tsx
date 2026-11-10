@@ -114,7 +114,7 @@ export async function HabitsView() {
           <CardDescription>Scheduled days done. Rest days and today (until it&rsquo;s over) don&rsquo;t count against you; doing a habit on another day makes up for a missed one.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
             <table className="w-full min-w-[720px] text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>

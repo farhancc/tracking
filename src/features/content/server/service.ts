@@ -36,7 +36,8 @@ export async function ensureContentSetup(tx: Tx) {
   await tx.insert(brandSettings).values({ positioning: DEFAULT_POSITIONING }).onConflictDoNothing();
   const [{ n }] = await tx.select({ n: count() }).from(contentPillars);
   if (n === 0) {
-    await tx.insert(contentPillars).values(DEFAULT_CONTENT_PILLARS.map((name, i) => ({ name, sortOrder: i })));
+    // A concurrent first visit may have inserted them already (unique user + name).
+    await tx.insert(contentPillars).values(DEFAULT_CONTENT_PILLARS.map((name, i) => ({ name, sortOrder: i }))).onConflictDoNothing({ target: [contentPillars.userId, contentPillars.name] });
   }
 }
 

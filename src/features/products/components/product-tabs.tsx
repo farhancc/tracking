@@ -264,7 +264,7 @@ export function FinanceTab({ data }: { data: Data }) {
             currency={cur}
             data={r.months.map((m) => ({ label: monthLabel(m.month) + (m.month === currentMonth ? " (to date)" : ""), netRevenue: m.netRevenue, expenses: m.expenses, profit: m.profit }))}
           />
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
             <table className="w-full min-w-[520px] text-sm tabular-nums">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>
@@ -401,7 +401,7 @@ export function FinanceTab({ data }: { data: Data }) {
                 </Field>
               </div>
             </ActionForm>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
               <table className="w-full min-w-[420px] text-sm tabular-nums">
                 <thead className="text-left text-xs text-muted-foreground">
                   <tr>

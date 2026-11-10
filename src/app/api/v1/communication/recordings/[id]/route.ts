@@ -32,4 +32,4 @@ export const GET = apiRoute<Params>(async ({ tx, params, request }) => {
 });
 
 /** DELETE /api/v1/communication/recordings/:id (refused while attached to practice or an assessment) */
-export const DELETE = apiRoute<Params>(({ tx, params }) => deleteRecording(tx, getStorage(), z.uuid().parse(params.id)));
+export const DELETE = apiRoute<Params>(({ tx, params }) => deleteRecording(tx, getStorage, z.uuid().parse(params.id)));

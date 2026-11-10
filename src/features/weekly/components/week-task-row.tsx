@@ -16,7 +16,7 @@ export function WeekTaskRow({ task }: { task: TaskRow }) {
           <SubmitButton
             variant="outline"
             size="icon"
-            className={cn("size-8", done && "border-success bg-success/10 text-success")}
+            className={cn("size-8", done && "border-success bg-success/10 text-success-ink")}
             aria-label={done ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
           >
             {done ? "✓" : ""}
@@ -30,7 +30,7 @@ export function WeekTaskRow({ task }: { task: TaskRow }) {
             {task.dueOn ? <span>due {task.dueOn}</span> : null}
             {task.estimatedMinutes ? <span>est. {formatMinutes(task.estimatedMinutes)}</span> : null}
             {task.actualMinutes ? <span>actual {formatMinutes(task.actualMinutes)}</span> : null}
-            {task.carryCount > 0 ? <span className={task.carryCount >= 2 ? "text-warning" : undefined}>carried ×{task.carryCount}</span> : null}
+            {task.carryCount > 0 ? <span className={task.carryCount >= 2 ? "text-warning-ink" : undefined}>carried ×{task.carryCount}</span> : null}
           </div>
         </div>
       </div>

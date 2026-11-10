@@ -195,7 +195,7 @@ export function GoalDetailView(props: Props) {
               )}
 
               {measurements.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
                   <table className="w-full text-sm">
                     <caption className="sr-only">Measurement history</caption>
                     <thead className="text-left text-xs text-muted-foreground">
@@ -375,7 +375,7 @@ export function GoalDetailView(props: Props) {
                   {prerequisites.map((p) => (
                     <div key={p.goal.id} className="flex items-start gap-2">
                       {p.isBlocking && p.goal.status !== "achieved" ? (
-                        <Lock className="mt-0.5 size-3.5 shrink-0 text-warning" aria-label="Blocking" />
+                        <Lock className="mt-0.5 size-3.5 shrink-0 text-warning-ink" aria-label="Blocking" />
                       ) : (
                         <span className="w-3.5" />
                       )}

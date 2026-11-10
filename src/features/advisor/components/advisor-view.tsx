@@ -53,11 +53,11 @@ function AnswerCard({ a }: { a: StoredAnswer }) {
           </ul>
           {unverified.length ? (
             <>
-              <h3 className="mb-1 mt-3 text-xs font-medium uppercase tracking-wide text-warning">Stated as fact but not found in your data</h3>
+              <h3 className="mb-1 mt-3 text-xs font-medium uppercase tracking-wide text-warning-ink">Stated as fact but not found in your data</h3>
               <ul className="flex flex-col gap-1">
                 {unverified.map((f) => (
                   <li key={`${f.statement}-${f.evidence}`} className="flex items-start gap-2">
-                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-ink" aria-hidden />
                     <span>
                       <span className="line-through decoration-muted-foreground/60">{f.statement}</span> <span className="text-xs text-muted-foreground">{f.reason}</span>
                     </span>

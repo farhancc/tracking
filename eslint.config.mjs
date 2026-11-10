@@ -38,6 +38,11 @@ const eslintConfig = defineConfig([
     files: ["src/lib/auth/**"],
     rules: { "no-restricted-imports": "off" },
   },
+  {
+    // Plain CommonJS scripts (the Playwright end-to-end test) load modules with require().
+    files: ["**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);
 

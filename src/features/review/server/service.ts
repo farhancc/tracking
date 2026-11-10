@@ -328,6 +328,12 @@ export async function saveReview(tx: Tx, weekStartArg: string, answers: ReviewAn
 
 /** Completes the review: answers saved, report frozen, the week marked reviewed (scorecard frozen too). */
 export async function completeReview(tx: Tx, weekStartArg: string, answers: ReviewAnswers) {
+  // A blank review defeats the purpose: require the reflection that shapes next week.
+  if (!answers.learned?.trim() && !answers.changeNextWeek?.trim()) {
+    throw new AppError(422, "reflection_required", "Write what you learned or what you'll change next week before completing the review.", {
+      learned: ["Write what you learned, or what you'll change next week."],
+    });
+  }
   const { g } = await saveReview(tx, weekStartArg, answers);
   const missedWithoutReason = g.signals.goals.filter((x) => !x.met && !answers.missed.some((m) => m.goalId === x.id));
   if (missedWithoutReason.length) {

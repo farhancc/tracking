@@ -32,7 +32,7 @@ function GroupTable({ title, description, groups }: { title: string; description
       </CardHeader>
       <CardContent>
         {groups.length === 0 ? <p className="text-sm text-muted-foreground">No published content in this period.</p> : null}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
           <table className="w-full min-w-[640px] text-sm tabular-nums">
             <thead className="text-left text-xs text-muted-foreground">
               <tr>
@@ -183,7 +183,7 @@ export async function AnalyticsView({ searchParams }: { searchParams: Promise<Pa
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
             <table className="w-full min-w-[760px] text-sm tabular-nums">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>
@@ -289,14 +289,16 @@ export async function AnalyticsView({ searchParams }: { searchParams: Promise<Pa
             </div>
           </ActionForm>
           {data.audience.length ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-md focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0}>
               <table className="w-full min-w-[360px] text-sm tabular-nums">
                 <thead className="text-left text-xs text-muted-foreground">
                   <tr>
                     <th className="py-1 font-medium">Date</th>
                     <th className="py-1 font-medium">Platform</th>
                     <th className="py-1 text-right font-medium">Followers</th>
-                    <th />
+                    <th>
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

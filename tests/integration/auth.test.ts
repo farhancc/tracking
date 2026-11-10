@@ -33,14 +33,16 @@ async function enrolledOwner() {
   expect(login).toMatchObject({ ok: true, enrolled: false });
   const start = await startEnrollment(db, userId);
   if (!start.ok) throw new Error("enrolment failed");
-  const confirmed = await confirmEnrollment(db, userId, codeAt(start.secret, -1), meta());
+  const setupStep = stepAt(new Date()) - 1;
+  const confirmed = await confirmEnrollment(db, userId, hotp(base32Decode(start.secret), setupStep), meta());
   if (!confirmed.ok) throw new Error("confirm failed");
-  return { email, userId, secret: start.secret, recoveryCodes: confirmed.recoveryCodes, session: confirmed.session };
+  return { email, userId, secret: start.secret, setupStep, recoveryCodes: confirmed.recoveryCodes, session: confirmed.session };
 }
 
 describe("owner account", () => {
   it("allows exactly one real owner", async () => {
-    await ownerPool.query("delete from auth.users where email not like '%@localhost' and email not like '%@test.local'");
+    // Other test files create password-less users at the same time; they are not owners.
+    await ownerPool.query("insert into auth.users (email) values ($1)", [`${randomUUID()}@test.local`]);
     await setOwnerCredentials(db, { email: "Owner@Example.com", password: PASSWORD });
     await expect(setOwnerCredentials(db, { email: "intruder@example.com", password: PASSWORD })).rejects.toThrow(/exactly one owner/);
     // Re-running for the same owner updates the password instead.
@@ -86,8 +88,8 @@ describe("second factor", () => {
   it("requires a fresh TOTP code, blocks replay, and accepts each recovery code once", async () => {
     const o = await enrolledOwner();
     expect(o.recoveryCodes).toHaveLength(10);
-    // Setup used step-1; that step and older are spent.
-    expect(await completeMfa(db, o.userId, { code: codeAt(o.secret, -1) }, meta())).toEqual({ ok: false, reason: "invalid" });
+    // The step used during setup is spent (pinned to that exact step, so a 30 s boundary can't make it fresh).
+    expect(await completeMfa(db, o.userId, { code: hotp(base32Decode(o.secret), o.setupStep) }, meta())).toEqual({ ok: false, reason: "invalid" });
     const ok = await completeMfa(db, o.userId, { code: codeAt(o.secret) }, meta());
     expect(ok).toMatchObject({ ok: true, usedRecoveryCode: false });
     expect(await completeMfa(db, o.userId, { code: codeAt(o.secret) }, meta())).toEqual({ ok: false, reason: "invalid" }); // replay
