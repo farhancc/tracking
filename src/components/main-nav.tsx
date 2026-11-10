@@ -36,6 +36,7 @@ export const GROUPS: { label: string; items: Item[] }[] = [
     label: "Plan",
     items: [
       { href: "/review", label: "Weekly review" },
+      { href: "/analytics", label: "Analytics" },
       { href: "/advisor", label: "Advisor" },
       { href: "/goals", label: "Goals" },
       { href: "/roadmap", label: "Roadmap" },

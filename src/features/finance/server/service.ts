@@ -102,7 +102,7 @@ const monthsBetween = (from: IsoDate, to: IsoDate) => {
 };
 
 /** Product revenue, costs and profitable products per month, from the product ledger, in this currency only. */
-async function productMonths(tx: Tx, currency: string): Promise<{ months: ProductMonth[]; excluded: string[]; firstMrrMonth: IsoDate | null; latestMrr: number }> {
+export async function productMonths(tx: Tx, currency: string): Promise<{ months: ProductMonth[]; excluded: string[]; firstMrrMonth: IsoDate | null; latestMrr: number }> {
   const list = await tx.select({ id: products.id, name: products.name, currency: products.currency, status: products.status }).from(products).where(isNull(products.archivedAt));
   const same = list.filter((p) => p.currency === currency);
   const excluded = list.filter((p) => p.currency !== currency).map((p) => `${p.name} (${p.currency})`);

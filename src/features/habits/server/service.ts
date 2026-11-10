@@ -106,7 +106,7 @@ export async function removeRestDay(tx: Tx, id: string) {
 // ---------------------------------------------------------------------------
 // Analysis
 
-const toDef = (h: HabitRow): HabitDef => ({
+export const toDef = (h: HabitRow): HabitDef => ({
   id: h.id,
   name: h.name,
   scheduleKind: h.scheduleKind,
@@ -129,7 +129,7 @@ async function mitScores(tx: Tx, from: IsoDate, to: IsoDate, timezone: string) {
   return new Map(rows.map((r) => [r.day!, r.done / r.total]));
 }
 
-async function loadContext(tx: Tx, habitIds: string[], since: IsoDate, today: IsoDate, weekStartsOn: number) {
+export async function loadContext(tx: Tx, habitIds: string[], since: IsoDate, today: IsoDate, weekStartsOn: number) {
   const rows = habitIds.length
     ? await tx
         .select({ habitId: habitCheckins.habitId, day: habitCheckins.checkinOn, status: habitCheckins.status, note: habitCheckins.note })

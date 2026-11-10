@@ -12,6 +12,6 @@ describe("main nav", () => {
   it("lists every screen once", () => {
     const hrefs = [...PRIMARY, ...GROUPS.flatMap((g) => g.items)].map((i) => i.href);
     expect(new Set(hrefs).size).toBe(hrefs.length);
-    expect(hrefs.length).toBe(15);
+    expect(hrefs.length).toBe(16);
   });
 });
