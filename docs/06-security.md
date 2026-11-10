@@ -225,6 +225,8 @@ create policy "<table>_delete_own" on public.<table>
 | SEC-BK-05 | Quarterly restore drill into a fresh Neon branch, with row counts compared. Results logged in `docs/ops/restore-log.md`. |
 | SEC-BK-06 | Targets: RPO ≤ 24 h even if the database provider is lost entirely (minutes within Neon's history window), RTO ≤ 4 h (NFR-08). |
 
+Implementation status: Neon PITR, `scripts/backup.sh` / `restore.sh` and the daily `age`-encrypted GitHub Actions backup (kept 90 days as an artifact rather than in separate object storage) are in place. The restore round trip is verified; see [docs/26 §6](26-deployment.md#6-backup-and-recovery). SEC-BK-04 (Settings → Data export) is covered for reports by the analytics CSV/PDF export; a full raw-data export is not built.
+
 ## 9. Privacy
 
 | ID | Requirement |
