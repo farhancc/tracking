@@ -1,0 +1,41 @@
+name: Backup
+
+# Daily encrypted logical backup, kept off Neon as a GitHub Actions artifact
+# for 90 days (docs/26 §6). Inert until the repository variable
+# BACKUP_ENABLED is "true" and these secrets exist:
+#   MIGRATION_DATABASE_URL  owner role, DIRECT (non-pooled) Neon endpoint
+#   BACKUP_AGE_RECIPIENT    age public key (age1…); keep the private key offline
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    if: ${{ vars.BACKUP_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pg_dump 17 and age
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common age
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump and encrypt
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          file=$(scripts/backup.sh backups | head -1 | cut -d' ' -f1)
+          age -r "$BACKUP_AGE_RECIPIENT" -o "$file.age" "$file"
+          shred -u "$file"
+          ls -l backups
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fiveyearos-backup-${{ github.run_id }}
+          path: backups/*.age
+          retention-days: 90
+          if-no-files-found: error
